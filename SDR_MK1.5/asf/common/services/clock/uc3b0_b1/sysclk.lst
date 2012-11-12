@@ -1,0 +1,1332 @@
+   1              		.file	"sysclk.c"
+  11              	.Ltext0:
+  12              		.file 1 "asf/common/services/clock/uc3b0_b1/sysclk.c"
+ 74403              		.align	1
+ 74404              		.global	sysclk_init
+ 74406              	sysclk_init:
+ 74407              	.LFB46:
+   1:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+   2:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \file
+   3:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+   4:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \brief Chip-specific system clock management functions
+   5:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+   6:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * Copyright (C) 2009 Atmel Corporation. All rights reserved.
+   7:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+   8:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \page License
+   9:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+  10:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * Redistribution and use in source and binary forms, with or without
+  11:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * modification, are permitted provided that the following conditions are met:
+  12:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+  13:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * 1. Redistributions of source code must retain the above copyright notice,
+  14:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * this list of conditions and the following disclaimer.
+  15:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+  16:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  17:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * this list of conditions and the following disclaimer in the documentation
+  18:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * and/or other materials provided with the distribution.
+  19:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+  20:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * 3. The name of Atmel may not be used to endorse or promote products derived
+  21:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * from this software without specific prior written permission.
+  22:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+  23:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * 4. This software may only be redistributed and used in connection with an
+  24:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * Atmel AVR product.
+  25:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+  26:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
+  27:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  28:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
+  29:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
+  30:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  31:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  32:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  33:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  34:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+  35:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+  36:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * DAMAGE.
+  37:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+  38:asf/common/services/clock/uc3b0_b1/sysclk.c **** #include <compiler.h>
+  39:asf/common/services/clock/uc3b0_b1/sysclk.c **** #include <stdbool.h>
+  40:asf/common/services/clock/uc3b0_b1/sysclk.c **** #include <sysclk.h>
+  41:asf/common/services/clock/uc3b0_b1/sysclk.c **** #include <avr32/io.h>
+  42:asf/common/services/clock/uc3b0_b1/sysclk.c **** #include <flashc.h>
+  43:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+  44:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+  45:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+  46:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \weakgroup sysclk_group
+  47:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * @{
+  48:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+  49:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+  50:asf/common/services/clock/uc3b0_b1/sysclk.c **** #if ((CONFIG_SYSCLK_CPU_DIV > CONFIG_SYSCLK_PBA_DIV) || \
+  51:asf/common/services/clock/uc3b0_b1/sysclk.c ****      (CONFIG_SYSCLK_CPU_DIV > CONFIG_SYSCLK_PBB_DIV))
+  52:asf/common/services/clock/uc3b0_b1/sysclk.c **** # error CONFIG_SYSCLK_PBx_DIV must be equal to or more than CONFIG_SYSCLK_CPU_DIV.
+  53:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+  54:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+  55:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+  56:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \internal
+  57:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \defgroup sysclk_internals_group System Clock internals
+  58:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+  59:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * System clock management is fairly straightforward apart from one
+  60:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * thing: Enabling and disabling bus bridges. When all peripherals on a
+  61:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * given bus are disabled, the bridge to the bus may be disabled. Only
+  62:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * the PBA and PBB busses support this, and it is not practical to
+  63:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * disable the PBA bridge as it includes the Power Manager, so turning
+  64:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * it off would make it impossible to turn anything back on again.
+  65:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+  66:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * The system clock implementation keeps track of a reference count for
+  67:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * PBB. When the reference count is zero, the bus bridge is disabled, otherwise
+  68:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * it is enabled.
+  69:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+  70:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * @{
+  71:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+  72:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+  73:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+  74:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \internal
+  75:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \name Initial module clock masks
+  76:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+  77:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * These are the mask values written to the xxxMASK registers during
+  78:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * initialization if the user has overriden the default behaviour of all clocks
+  79:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * left enabled. These values assume that:
+  80:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *   - Debugging should be possible
+  81:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *   - The program may be running from flash
+  82:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *   - The PM should be available to unmask other clocks
+  83:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *   - All on-chip RAM should be available
+  84:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *   - INTC, PM and GPIO are made permanently available for now; this
+  85:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *     may change in the future.
+  86:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+  87:asf/common/services/clock/uc3b0_b1/sysclk.c **** //@{
+  88:asf/common/services/clock/uc3b0_b1/sysclk.c **** //! \internal
+  89:asf/common/services/clock/uc3b0_b1/sysclk.c **** //! \brief Initial value of CPUMASK
+  90:asf/common/services/clock/uc3b0_b1/sysclk.c **** #define SYSCLK_INIT_MINIMAL_CPUMASK                                    \
+  91:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	((1 << SYSCLK_OCD) | (1 << SYSCLK_SYSTIMER))
+  92:asf/common/services/clock/uc3b0_b1/sysclk.c **** //! \internal
+  93:asf/common/services/clock/uc3b0_b1/sysclk.c **** //! \brief Initial value of HSBMASK
+  94:asf/common/services/clock/uc3b0_b1/sysclk.c **** #define SYSCLK_INIT_MINIMAL_HSBMASK                                    \
+  95:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	((1 << SYSCLK_FLASHC_DATA)                                         \
+  96:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		| (1 << SYSCLK_PBA_BRIDGE))
+  97:asf/common/services/clock/uc3b0_b1/sysclk.c **** //! \internal
+  98:asf/common/services/clock/uc3b0_b1/sysclk.c **** //! \brief Initial value of PBAMASK
+  99:asf/common/services/clock/uc3b0_b1/sysclk.c **** #define SYSCLK_INIT_MINIMAL_PBAMASK                                    \
+ 100:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	((1 << SYSCLK_INTC)                                                \
+ 101:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		| (1 << SYSCLK_GPIO)                                           \
+ 102:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		| (1 << SYSCLK_PM))
+ 103:asf/common/services/clock/uc3b0_b1/sysclk.c **** //! \internal
+ 104:asf/common/services/clock/uc3b0_b1/sysclk.c **** //! \brief Initial value of PBBMASK
+ 105:asf/common/services/clock/uc3b0_b1/sysclk.c **** #define SYSCLK_INIT_MINIMAL_PBBMASK     0
+ 106:asf/common/services/clock/uc3b0_b1/sysclk.c **** //@}
+ 107:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 108:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+ 109:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \internal
+ 110:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \brief Number of enabled peripherals on the PBB bus.
+ 111:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+ 112:asf/common/services/clock/uc3b0_b1/sysclk.c **** static uint8_t sysclk_pbb_refcount;
+ 113:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 114:asf/common/services/clock/uc3b0_b1/sysclk.c **** #if defined(CONFIG_SYSCLK_DEFAULT_RETURNS_SLOW_OSC)
+ 115:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+ 116:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \brief boolean signaling that the sysclk_init is done.
+ 117:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+ 118:asf/common/services/clock/uc3b0_b1/sysclk.c **** bool sysclk_initialized = false;
+ 119:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 120:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 121:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+ 122:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \internal
+ 123:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \brief Enable a maskable module clock.
+ 124:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \param bus_id Bus index, given by the \c AVR32_PM_CLK_GRP_xxx definitions.
+ 125:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \param module_index Index of the module to be enabled. This is the
+ 126:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * bit number in the corresponding xxxMASK register.
+ 127:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+ 128:asf/common/services/clock/uc3b0_b1/sysclk.c **** void sysclk_priv_enable_module(unsigned int bus_id, unsigned int module_index)
+ 129:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 130:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	irqflags_t flags;
+ 131:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	uint32_t   mask;
+ 132:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	
+ 133:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	flags = cpu_irq_save();
+ 134:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 135:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/*
+ 136:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	 * Poll MSKRDY before changing mask rather than after, as it's
+ 137:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	 * highly unlikely to actually be cleared at this point.
+ 138:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	 */
+ 139:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	while (!(AVR32_PM.poscsr & (1U << AVR32_PM_POSCSR_MSKRDY))) {
+ 140:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		/* Do nothing */
+ 141:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	}
+ 142:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 143:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/* Enable the clock */
+ 144:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask = *(&AVR32_PM.cpumask + bus_id);
+ 145:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask |= 1U << module_index;
+ 146:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	*(&AVR32_PM.cpumask + bus_id) = mask;
+ 147:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 148:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	cpu_irq_restore(flags);
+ 149:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 150:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 151:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+ 152:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \internal
+ 153:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \brief Disable a maskable module clock.
+ 154:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \param bus_id Bus index, given by the \c AVR32_PM_CLK_GRP_xxx definitions.
+ 155:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \param module_index Index of the module to be disabled. This is the
+ 156:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * bit number in the corresponding xxxMASK register.
+ 157:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+ 158:asf/common/services/clock/uc3b0_b1/sysclk.c **** void sysclk_priv_disable_module(unsigned int bus_id, unsigned int module_index)
+ 159:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 160:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	irqflags_t flags;
+ 161:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	uint32_t   mask;
+ 162:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 163:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	flags = cpu_irq_save();
+ 164:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 165:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/*
+ 166:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	 * Poll MSKRDY before changing mask rather than after, as it's
+ 167:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	 * highly unlikely to actually be cleared at this point.
+ 168:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	 */
+ 169:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	while (!(AVR32_PM.poscsr & (1U << AVR32_PM_POSCSR_MSKRDY))) {
+ 170:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		/* Do nothing */
+ 171:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	}
+ 172:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 173:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/* Disable the clock */
+ 174:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask = *(&AVR32_PM.cpumask + bus_id);
+ 175:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask &= ~(1U << module_index);
+ 176:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	*(&AVR32_PM.cpumask + bus_id) = mask;
+ 177:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 178:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	cpu_irq_restore(flags);
+ 179:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 180:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 181:asf/common/services/clock/uc3b0_b1/sysclk.c **** //! @}
+ 182:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 183:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+ 184:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \brief Enable a module clock derived from the PBB clock
+ 185:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \param index Index of the module clock in the PBBMASK register
+ 186:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+ 187:asf/common/services/clock/uc3b0_b1/sysclk.c **** void sysclk_enable_pbb_module(unsigned int index)
+ 188:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 189:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	irqflags_t flags;
+ 190:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 191:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/* Enable the bridge if necessary */
+ 192:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	flags = cpu_irq_save();
+ 193:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 194:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	if (!sysclk_pbb_refcount)
+ 195:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		sysclk_enable_hsb_module(SYSCLK_PBB_BRIDGE);
+ 196:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_pbb_refcount++;
+ 197:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 198:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	cpu_irq_restore(flags);
+ 199:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 200:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/* Enable the module */
+ 201:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_priv_enable_module(AVR32_PM_CLK_GRP_PBB, index);
+ 202:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 203:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 204:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+ 205:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \brief Disable a module clock derived from the PBB clock
+ 206:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \param index Index of the module clock in the PBBMASK register
+ 207:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+ 208:asf/common/services/clock/uc3b0_b1/sysclk.c **** void sysclk_disable_pbb_module(unsigned int index)
+ 209:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 210:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	irqflags_t flags;
+ 211:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 212:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/* Disable the module */
+ 213:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_priv_disable_module(AVR32_PM_CLK_GRP_PBB, index);
+ 214:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 215:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/* Disable the bridge if possible */
+ 216:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	flags = cpu_irq_save();
+ 217:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 218:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_pbb_refcount--;
+ 219:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	if (!sysclk_pbb_refcount)
+ 220:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		sysclk_disable_hsb_module(SYSCLK_PBB_BRIDGE);
+ 221:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 222:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	cpu_irq_restore(flags);
+ 223:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 224:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 225:asf/common/services/clock/uc3b0_b1/sysclk.c **** #if defined(CONFIG_USBCLK_SOURCE) || defined(__DOXYGEN__)
+ 226:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+ 227:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \brief Enable the USB generic clock
+ 228:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
+ 229:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \pre The USB generick clock must be configurated to 48MHz.
+ 230:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * CONFIG_USBCLK_SOURCE and CONFIG_USBCLK_DIV must be defined with proper
+ 231:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * configuration. The selected clock source must also be configured.
+ 232:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+ 233:asf/common/services/clock/uc3b0_b1/sysclk.c **** void sysclk_enable_usb(void)
+ 234:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 235:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	struct genclk_config gcfg;
+ 236:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 237:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_enable_pbb_module(SYSCLK_USBB_REGS);
+ 238:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_enable_hsb_module(SYSCLK_USBB_DATA);
+ 239:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	genclk_config_defaults(&gcfg, AVR32_PM_GCLK_USBB);
+ 240:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 241:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/*
+ 242:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	 * Switch to the system clock selected by the user.
+ 243:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	 */
+ 244:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	switch (CONFIG_USBCLK_SOURCE) {
+ 245:asf/common/services/clock/uc3b0_b1/sysclk.c **** #ifdef BOARD_OSC0_HZ
+ 246:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	case USBCLK_SRC_OSC0:
+ 247:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		osc_enable(0);
+ 248:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		osc_wait_ready(0);
+ 249:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		genclk_config_set_source(&gcfg, GENCLK_SRC_OSC0);
+ 250:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		break;
+ 251:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 252:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 253:asf/common/services/clock/uc3b0_b1/sysclk.c **** #ifdef CONFIG_PLL0_SOURCE
+ 254:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	case USBCLK_SRC_PLL0: {
+ 255:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		struct pll_config pllcfg;
+ 256:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 257:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		osc_enable(CONFIG_PLL0_SOURCE);
+ 258:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		osc_wait_ready(CONFIG_PLL0_SOURCE);
+ 259:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 260:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		pll_config_defaults(&pllcfg, 0);
+ 261:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		pll_enable(&pllcfg, 0);
+ 262:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		pll_wait_for_lock(0);
+ 263:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		genclk_config_set_source(&gcfg, GENCLK_SRC_PLL0);
+ 264:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		break;
+ 265:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	}
+ 266:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 267:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 268:asf/common/services/clock/uc3b0_b1/sysclk.c **** #ifdef CONFIG_PLL1_SOURCE
+ 269:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	case USBCLK_SRC_PLL1: {
+ 270:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		struct pll_config pllcfg;
+ 271:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 272:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		osc_enable(CONFIG_PLL1_SOURCE);
+ 273:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		osc_wait_ready(CONFIG_PLL1_SOURCE);
+ 274:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 275:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		pll_config_defaults(&pllcfg, 1);
+ 276:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		pll_enable(&pllcfg, 1);
+ 277:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		pll_wait_for_lock(1);
+ 278:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		genclk_config_set_source(&gcfg, GENCLK_SRC_PLL1);
+ 279:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		break;
+ 280:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	}
+ 281:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 282:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 283:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	default:
+ 284:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		/* unhandled_case(CONFIG_SYSCLK_SOURCE); */
+ 285:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		break;
+ 286:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	}
+ 287:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 288:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	genclk_config_set_divider(&gcfg, CONFIG_USBCLK_DIV);
+ 289:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	genclk_enable(&gcfg, AVR32_PM_GCLK_USBB);
+ 290:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 291:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 292:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
+ 293:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \brief Disable the USB generic clock
+ 294:asf/common/services/clock/uc3b0_b1/sysclk.c ****  */
+ 295:asf/common/services/clock/uc3b0_b1/sysclk.c **** void sysclk_disable_usb(void)
+ 296:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 297:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	genclk_disable(AVR32_PM_GCLK_USBB);
+ 298:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_disable_hsb_module(SYSCLK_USBB_DATA);
+ 299:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_disable_pbb_module(SYSCLK_USBB_REGS);
+ 300:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 301:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif // CONFIG_USBCLK_SOURCE
+ 302:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 303:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 304:asf/common/services/clock/uc3b0_b1/sysclk.c **** void sysclk_init(void)
+ 305:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 74408              		.loc 1 305 0
+ 74409              		# args = 0, frame = 0, pretend = 0
+ 74410              		# frame_needed = 0, leaf_function = 1
+ 74411              		# uses_anonymous_args = 0
+ 306:asf/common/services/clock/uc3b0_b1/sysclk.c **** #if (CONFIG_SYSCLK_PBA_DIV < CONFIG_SYSCLK_CPU_DIV)
+ 307:asf/common/services/clock/uc3b0_b1/sysclk.c **** #error Wrong CONFIG_SYSCLK_PBA_DIV & CONFIG_SYSCLK_CPU_DIV settings
+ 308:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 309:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 310:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/* Set up system clock dividers if different from defaults */
+ 311:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	if ((CONFIG_SYSCLK_CPU_DIV > 0) || (CONFIG_SYSCLK_PBA_DIV > 0) ||
+ 312:asf/common/services/clock/uc3b0_b1/sysclk.c **** 			(CONFIG_SYSCLK_PBB_DIV > 0)) {
+ 313:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		sysclk_set_prescalers(CONFIG_SYSCLK_CPU_DIV,
+ 314:asf/common/services/clock/uc3b0_b1/sysclk.c **** 				CONFIG_SYSCLK_PBA_DIV,
+ 315:asf/common/services/clock/uc3b0_b1/sysclk.c **** 				CONFIG_SYSCLK_PBB_DIV);
+ 316:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	}
+ 317:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 318:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/*
+ 319:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	 * Switch to the system clock selected by the user.
+ 320:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	 */
+ 321:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	switch (CONFIG_SYSCLK_SOURCE) {
+ 322:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	case SYSCLK_SRC_RCSYS:
+ 323:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		/* Already running from RCOSC */
+ 324:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		break;
+ 325:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 326:asf/common/services/clock/uc3b0_b1/sysclk.c **** #ifdef BOARD_OSC0_HZ
+ 327:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	case SYSCLK_SRC_OSC0:
+ 328:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		osc_enable(0);
+ 329:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		osc_wait_ready(0);
+ 330:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		// Set a flash wait state depending on the new cpu frequency.
+ 331:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		flash_set_bus_freq(BOARD_OSC0_HZ);
+ 332:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		sysclk_set_source(SYSCLK_SRC_OSC0);
+ 333:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		break;
+ 334:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 335:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 336:asf/common/services/clock/uc3b0_b1/sysclk.c **** #ifdef CONFIG_PLL0_SOURCE
+ 337:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	case SYSCLK_SRC_PLL0: {
+ 338:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		struct pll_config pllcfg;
+ 339:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 340:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		osc_enable(CONFIG_PLL0_SOURCE);
+ 341:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		osc_wait_ready(CONFIG_PLL0_SOURCE);
+ 342:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 343:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		pll_config_defaults(&pllcfg, 0);
+ 344:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		pll_enable(&pllcfg, 0);
+ 345:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		pll_wait_for_lock(0);
+ 346:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		// Set a flash wait state depending on the new cpu frequency.
+ 347:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		flash_set_bus_freq(sysclk_get_main_hz());
+ 348:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		sysclk_set_source(SYSCLK_SRC_PLL0);
+ 349:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		break;
+ 350:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	}
+ 351:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 352:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 353:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	default:
+ 354:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		/* unhandled_case(CONFIG_SYSCLK_SOURCE); */
+ 355:asf/common/services/clock/uc3b0_b1/sysclk.c **** 		break;
+ 356:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	}
+ 357:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 358:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/* If the user has specified clock masks, enable only requested clocks */
+ 359:asf/common/services/clock/uc3b0_b1/sysclk.c **** #if defined(CONFIG_SYSCLK_INIT_CPUMASK)
+ 360:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	AVR32_PM.cpumask = SYSCLK_INIT_MINIMAL_CPUMASK | CONFIG_SYSCLK_INIT_CPUMASK;
+ 361:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 362:asf/common/services/clock/uc3b0_b1/sysclk.c **** #if defined(CONFIG_SYSCLK_INIT_PBAMASK)
+ 363:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	AVR32_PM.pbamask = SYSCLK_INIT_MINIMAL_PBAMASK | CONFIG_SYSCLK_INIT_PBAMASK;
+ 364:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 365:asf/common/services/clock/uc3b0_b1/sysclk.c **** #if defined(CONFIG_SYSCLK_INIT_PBBMASK)
+ 366:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	AVR32_PM.pbbmask = SYSCLK_INIT_MINIMAL_PBBMASK | CONFIG_SYSCLK_INIT_PBBMASK;
+ 367:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 368:asf/common/services/clock/uc3b0_b1/sysclk.c **** #if defined(CONFIG_SYSCLK_INIT_HSBMASK)
+ 369:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	AVR32_PM.hsbmask = SYSCLK_INIT_MINIMAL_HSBMASK | CONFIG_SYSCLK_INIT_HSBMASK;
+ 370:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 371:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
+ 372:asf/common/services/clock/uc3b0_b1/sysclk.c **** #if (defined CONFIG_SYSCLK_DEFAULT_RETURNS_SLOW_OSC)
+ 373:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	/* Signal that the internal frequencies are setup */
+ 374:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_initialized = true;
+ 375:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
+ 376:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 74412              		.loc 1 376 0
+ 74413 0000 5EFC     		retal	r12
+ 74414              	.LFE46:
+ 74416              		.section	.text.sysclk_priv_disable_module,"ax",@progbits
+ 74417              		.align	1
+ 74418              		.global	sysclk_priv_disable_module
+ 74420              	sysclk_priv_disable_module:
+ 74421              	.LFB43:
+ 159:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 74422              		.loc 1 159 0
+ 74423              		# args = 0, frame = 0, pretend = 0
+ 74424              		# frame_needed = 0, leaf_function = 1
+ 74425              		# uses_anonymous_args = 0
+ 74426              	.LVL0:
+ 74427              	.LBB22:
+ 74428              	.LBB23:
+   1:asf/common/utils/interrupt/interrupt_avr32.h **** /**
+   2:asf/common/utils/interrupt/interrupt_avr32.h ****  * \file
+   3:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+   4:asf/common/utils/interrupt/interrupt_avr32.h ****  * \brief Global interrupt management for 32-bit AVR
+   5:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+   6:asf/common/utils/interrupt/interrupt_avr32.h ****  * Copyright (C) 2010 Atmel Corporation. All rights reserved.
+   7:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+   8:asf/common/utils/interrupt/interrupt_avr32.h ****  * \page License
+   9:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  10:asf/common/utils/interrupt/interrupt_avr32.h ****  * Redistribution and use in source and binary forms, with or without
+  11:asf/common/utils/interrupt/interrupt_avr32.h ****  * modification, are permitted provided that the following conditions are met:
+  12:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  13:asf/common/utils/interrupt/interrupt_avr32.h ****  * 1. Redistributions of source code must retain the above copyright notice,
+  14:asf/common/utils/interrupt/interrupt_avr32.h ****  * this list of conditions and the following disclaimer.
+  15:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  16:asf/common/utils/interrupt/interrupt_avr32.h ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  17:asf/common/utils/interrupt/interrupt_avr32.h ****  * this list of conditions and the following disclaimer in the documentation
+  18:asf/common/utils/interrupt/interrupt_avr32.h ****  * and/or other materials provided with the distribution.
+  19:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  20:asf/common/utils/interrupt/interrupt_avr32.h ****  * 3. The name of Atmel may not be used to endorse or promote products derived
+  21:asf/common/utils/interrupt/interrupt_avr32.h ****  * from this software without specific prior written permission.
+  22:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  23:asf/common/utils/interrupt/interrupt_avr32.h ****  * 4. This software may only be redistributed and used in connection with an
+  24:asf/common/utils/interrupt/interrupt_avr32.h ****  * Atmel AVR product.
+  25:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  26:asf/common/utils/interrupt/interrupt_avr32.h ****  * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
+  27:asf/common/utils/interrupt/interrupt_avr32.h ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  28:asf/common/utils/interrupt/interrupt_avr32.h ****  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
+  29:asf/common/utils/interrupt/interrupt_avr32.h ****  * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
+  30:asf/common/utils/interrupt/interrupt_avr32.h ****  * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  31:asf/common/utils/interrupt/interrupt_avr32.h ****  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  32:asf/common/utils/interrupt/interrupt_avr32.h ****  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  33:asf/common/utils/interrupt/interrupt_avr32.h ****  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  34:asf/common/utils/interrupt/interrupt_avr32.h ****  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+  35:asf/common/utils/interrupt/interrupt_avr32.h ****  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+  36:asf/common/utils/interrupt/interrupt_avr32.h ****  * DAMAGE.
+  37:asf/common/utils/interrupt/interrupt_avr32.h ****  */
+  38:asf/common/utils/interrupt/interrupt_avr32.h **** #ifndef UTILS_INTERRUPT_INTERRUPT_H
+  39:asf/common/utils/interrupt/interrupt_avr32.h **** #define UTILS_INTERRUPT_INTERRUPT_H
+  40:asf/common/utils/interrupt/interrupt_avr32.h **** 
+  41:asf/common/utils/interrupt/interrupt_avr32.h **** #include <compiler.h>
+  42:asf/common/utils/interrupt/interrupt_avr32.h **** #include <preprocessor/tpaste.h>
+  43:asf/common/utils/interrupt/interrupt_avr32.h **** 
+  44:asf/common/utils/interrupt/interrupt_avr32.h **** /**
+  45:asf/common/utils/interrupt/interrupt_avr32.h ****  * \weakgroup interrupt_group
+  46:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  47:asf/common/utils/interrupt/interrupt_avr32.h ****  * @{
+  48:asf/common/utils/interrupt/interrupt_avr32.h ****  */
+  49:asf/common/utils/interrupt/interrupt_avr32.h **** 
+  50:asf/common/utils/interrupt/interrupt_avr32.h **** //! Pointer to interrupt handler.
+  51:asf/common/utils/interrupt/interrupt_avr32.h **** #if (defined __GNUC__)
+  52:asf/common/utils/interrupt/interrupt_avr32.h **** typedef void (*__int_handler)(void);
+  53:asf/common/utils/interrupt/interrupt_avr32.h **** #elif (defined __ICCAVR32__)
+  54:asf/common/utils/interrupt/interrupt_avr32.h **** typedef void (__interrupt *__int_handler)(void);
+  55:asf/common/utils/interrupt/interrupt_avr32.h **** #endif
+  56:asf/common/utils/interrupt/interrupt_avr32.h **** 
+  57:asf/common/utils/interrupt/interrupt_avr32.h **** /**
+  58:asf/common/utils/interrupt/interrupt_avr32.h ****  * \name Interrupt Service Routine definition and registration
+  59:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  60:asf/common/utils/interrupt/interrupt_avr32.h ****  * @{
+  61:asf/common/utils/interrupt/interrupt_avr32.h ****  */
+  62:asf/common/utils/interrupt/interrupt_avr32.h **** #if defined(__GNUC__) || defined(__DOXYGEN__)
+  63:asf/common/utils/interrupt/interrupt_avr32.h **** 
+  64:asf/common/utils/interrupt/interrupt_avr32.h **** /**
+  65:asf/common/utils/interrupt/interrupt_avr32.h ****  * \brief Define service routine
+  66:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  67:asf/common/utils/interrupt/interrupt_avr32.h ****  * With GCC, this macro only causes the function to be defined as an interrupt
+  68:asf/common/utils/interrupt/interrupt_avr32.h ****  * service routine, i.e., it does not add any initialization code. A valid
+  69:asf/common/utils/interrupt/interrupt_avr32.h ****  * function name is required for use with \ref irq_register_handler.
+  70:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  71:asf/common/utils/interrupt/interrupt_avr32.h ****  * With IAR, this macro defines the function as an interrupt service routine and
+  72:asf/common/utils/interrupt/interrupt_avr32.h ****  * causes the compiler to add initialization code for the interrupt controller
+  73:asf/common/utils/interrupt/interrupt_avr32.h ****  * (INTC). The interrupt group and level, as well as a valid function name are
+  74:asf/common/utils/interrupt/interrupt_avr32.h ****  * therefore required.\n
+  75:asf/common/utils/interrupt/interrupt_avr32.h ****  * \note If \ref CONFIG_INTERRUPT_FORCE_INTC is defined, only a valid function
+  76:asf/common/utils/interrupt/interrupt_avr32.h ****  * name is required for use with \ref irq_register_handler. The initialization
+  77:asf/common/utils/interrupt/interrupt_avr32.h ****  * code will be handled by the interrupt controller itself.
+  78:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  79:asf/common/utils/interrupt/interrupt_avr32.h ****  * Usage:
+  80:asf/common/utils/interrupt/interrupt_avr32.h ****  * \code
+  81:asf/common/utils/interrupt/interrupt_avr32.h ****  * ISR(foo_irq_handler, AVR32_xxx_IRQ_GROUP, n)
+  82:asf/common/utils/interrupt/interrupt_avr32.h ****  * {
+  83:asf/common/utils/interrupt/interrupt_avr32.h ****  *      // Function definition
+  84:asf/common/utils/interrupt/interrupt_avr32.h ****  *      ...
+  85:asf/common/utils/interrupt/interrupt_avr32.h ****  * }
+  86:asf/common/utils/interrupt/interrupt_avr32.h ****  * \endcode
+  87:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  88:asf/common/utils/interrupt/interrupt_avr32.h ****  * \param func Name for the function, needed by \ref irq_register_handler.
+  89:asf/common/utils/interrupt/interrupt_avr32.h ****  * \param int_grp Interrupt group to define service routine for.
+  90:asf/common/utils/interrupt/interrupt_avr32.h ****  * \param int_lvl Priority level to set for the interrupt group, in the range
+  91:asf/common/utils/interrupt/interrupt_avr32.h ****  * \c 0 to \c 3.
+  92:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  93:asf/common/utils/interrupt/interrupt_avr32.h ****  * \note The interrupt groups can be found in the device header files for the
+  94:asf/common/utils/interrupt/interrupt_avr32.h ****  * IAR toolchain (avr32/io\<part\>.h).
+  95:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+  96:asf/common/utils/interrupt/interrupt_avr32.h ****  * \todo Update to use IRQ numbers when these are made available in the
+  97:asf/common/utils/interrupt/interrupt_avr32.h ****  * device header files of both IAR and GCC.
+  98:asf/common/utils/interrupt/interrupt_avr32.h ****  */
+  99:asf/common/utils/interrupt/interrupt_avr32.h **** #  define ISR(func, int_grp, int_lvl)    \
+ 100:asf/common/utils/interrupt/interrupt_avr32.h **** 	__attribute__((__interrupt__)) static void func (void)
+ 101:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 102:asf/common/utils/interrupt/interrupt_avr32.h **** #elif defined(__ICCAVR32__)
+ 103:asf/common/utils/interrupt/interrupt_avr32.h **** #  define ISR0(...) _Pragma(#__VA_ARGS__)
+ 104:asf/common/utils/interrupt/interrupt_avr32.h **** #  define ISR(func, int_grp, int_lvl)                                          \
+ 105:asf/common/utils/interrupt/interrupt_avr32.h **** 		ISR0(handler=int_grp, int_lvl)                                 \
+ 106:asf/common/utils/interrupt/interrupt_avr32.h **** 		  __interrupt static void func (void)
+ 107:asf/common/utils/interrupt/interrupt_avr32.h **** #endif
+ 108:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 109:asf/common/utils/interrupt/interrupt_avr32.h **** #if defined(__GNUC__) || defined(__DOXYGEN__) || defined(CONFIG_INTERRUPT_FORCE_INTC)
+ 110:asf/common/utils/interrupt/interrupt_avr32.h **** #  include <intc.h>
+ 111:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 112:asf/common/utils/interrupt/interrupt_avr32.h **** /**
+ 113:asf/common/utils/interrupt/interrupt_avr32.h ****  * \brief Initialize interrupt vectors
+ 114:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+ 115:asf/common/utils/interrupt/interrupt_avr32.h ****  * With GCC, this macro adds code for initialization of the interrupt vectors
+ 116:asf/common/utils/interrupt/interrupt_avr32.h ****  * with the driver for the interrupt controller (INTC).
+ 117:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+ 118:asf/common/utils/interrupt/interrupt_avr32.h ****  * With IAR and unless \ref CONFIG_INTERRUPT_FORCE_INTC is defined this macro
+ 119:asf/common/utils/interrupt/interrupt_avr32.h ****  * adds no code, since initialization of the INTC is handled by the compiler.
+ 120:asf/common/utils/interrupt/interrupt_avr32.h ****  * \note Defining \ref CONFIG_INTERRUPT_FORCE_INTC will force the use of the
+ 121:asf/common/utils/interrupt/interrupt_avr32.h ****  * INTC driver, replacing the compiler built-in interrupt handler.
+ 122:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+ 123:asf/common/utils/interrupt/interrupt_avr32.h ****  * This must be called prior to \ref irq_register_handler.
+ 124:asf/common/utils/interrupt/interrupt_avr32.h ****  */
+ 125:asf/common/utils/interrupt/interrupt_avr32.h **** #  define irq_initialize_vectors()    INTC_init_interrupts()
+ 126:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 127:asf/common/utils/interrupt/interrupt_avr32.h **** /**
+ 128:asf/common/utils/interrupt/interrupt_avr32.h ****  * \brief Register handler for interrupt
+ 129:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+ 130:asf/common/utils/interrupt/interrupt_avr32.h ****  * With GCC, this macro adds code for registering an interrupt handler with the
+ 131:asf/common/utils/interrupt/interrupt_avr32.h ****  * driver for the interrupt controller (INTC).
+ 132:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+ 133:asf/common/utils/interrupt/interrupt_avr32.h ****  * With IAR and unless \ref CONFIG_INTERRUPT_FORCE_INTC is defined this macro
+ 134:asf/common/utils/interrupt/interrupt_avr32.h ****  * adds no code, since initialization of the INTC is handled by the compiler.
+ 135:asf/common/utils/interrupt/interrupt_avr32.h ****  * \note Defining \ref CONFIG_INTERRUPT_FORCE_INTC will force the use of the
+ 136:asf/common/utils/interrupt/interrupt_avr32.h ****  * INTC driver, replacing the compiler built-in interrupt handler.
+ 137:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+ 138:asf/common/utils/interrupt/interrupt_avr32.h ****  * \param func Name of handler function to register for interrupt.
+ 139:asf/common/utils/interrupt/interrupt_avr32.h ****  * \param int_num Number of the interrupt line to register function for.
+ 140:asf/common/utils/interrupt/interrupt_avr32.h ****  * \param int_lvl Priority level to set for the interrupt's group, in the range
+ 141:asf/common/utils/interrupt/interrupt_avr32.h ****  * \c 0 to \c 3.
+ 142:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+ 143:asf/common/utils/interrupt/interrupt_avr32.h ****  * Usage:
+ 144:asf/common/utils/interrupt/interrupt_avr32.h ****  * \code
+ 145:asf/common/utils/interrupt/interrupt_avr32.h ****  * irq_initialize_vectors();
+ 146:asf/common/utils/interrupt/interrupt_avr32.h ****  * irq_register_handler(foo_irq_handler, AVR32_xxx_IRQ, n);
+ 147:asf/common/utils/interrupt/interrupt_avr32.h ****  * \endcode
+ 148:asf/common/utils/interrupt/interrupt_avr32.h ****  *
+ 149:asf/common/utils/interrupt/interrupt_avr32.h ****  * \note The function \a func must be defined with the \ref ISR macro.
+ 150:asf/common/utils/interrupt/interrupt_avr32.h ****  * \note The interrupt line number can be found in the device header files for
+ 151:asf/common/utils/interrupt/interrupt_avr32.h ****  * the GCC toolchain (avr32/\<part\>.h).
+ 152:asf/common/utils/interrupt/interrupt_avr32.h ****  */
+ 153:asf/common/utils/interrupt/interrupt_avr32.h **** #  define irq_register_handler(func, int_num, int_lvl)                         \
+ 154:asf/common/utils/interrupt/interrupt_avr32.h **** 	INTC_register_interrupt(func, int_num,                                 \
+ 155:asf/common/utils/interrupt/interrupt_avr32.h **** 			TPASTE2(AVR32_INTC_INT, int_lvl))
+ 156:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 157:asf/common/utils/interrupt/interrupt_avr32.h **** #elif defined(__ICCAVR32__)
+ 158:asf/common/utils/interrupt/interrupt_avr32.h **** #  define irq_initialize_vectors()                        do{ } while(0)
+ 159:asf/common/utils/interrupt/interrupt_avr32.h **** #  define irq_register_handler(func, int_num, int_lvl)    do{ } while(0)
+ 160:asf/common/utils/interrupt/interrupt_avr32.h **** #endif
+ 161:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 162:asf/common/utils/interrupt/interrupt_avr32.h **** //@}
+ 163:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 164:asf/common/utils/interrupt/interrupt_avr32.h **** #if (defined __GNUC__)
+ 165:asf/common/utils/interrupt/interrupt_avr32.h **** #  define cpu_irq_enable()                             \
+ 166:asf/common/utils/interrupt/interrupt_avr32.h **** 	do {                                           \
+ 167:asf/common/utils/interrupt/interrupt_avr32.h **** 		barrier();                             \
+ 168:asf/common/utils/interrupt/interrupt_avr32.h **** 		__builtin_csrf(AVR32_SR_GM_OFFSET);    \
+ 169:asf/common/utils/interrupt/interrupt_avr32.h **** 	} while (0)
+ 170:asf/common/utils/interrupt/interrupt_avr32.h **** #  define cpu_irq_disable()                            \
+ 171:asf/common/utils/interrupt/interrupt_avr32.h **** 	do {                                           \
+ 172:asf/common/utils/interrupt/interrupt_avr32.h **** 		__builtin_ssrf(AVR32_SR_GM_OFFSET);    \
+ 173:asf/common/utils/interrupt/interrupt_avr32.h **** 		barrier();                             \
+ 174:asf/common/utils/interrupt/interrupt_avr32.h **** 	} while (0)
+ 175:asf/common/utils/interrupt/interrupt_avr32.h **** #elif (defined __ICCAVR32__)
+ 176:asf/common/utils/interrupt/interrupt_avr32.h **** #  if (defined CONFIG_INTERRUPT_FORCE_INTC)
+ 177:asf/common/utils/interrupt/interrupt_avr32.h **** #    define cpu_irq_enable()                                 \
+ 178:asf/common/utils/interrupt/interrupt_avr32.h **** 	do {                                                 \
+ 179:asf/common/utils/interrupt/interrupt_avr32.h **** 		barrier();                                   \
+ 180:asf/common/utils/interrupt/interrupt_avr32.h **** 		__clear_status_flag(AVR32_SR_GM_OFFSET);     \
+ 181:asf/common/utils/interrupt/interrupt_avr32.h **** 	} while(0)
+ 182:asf/common/utils/interrupt/interrupt_avr32.h **** #    define cpu_irq_disable()                                \
+ 183:asf/common/utils/interrupt/interrupt_avr32.h **** 	do {                                                 \
+ 184:asf/common/utils/interrupt/interrupt_avr32.h **** 		__set_status_flag(AVR32_SR_GM_OFFSET);       \
+ 185:asf/common/utils/interrupt/interrupt_avr32.h **** 		barrier();                                   \
+ 186:asf/common/utils/interrupt/interrupt_avr32.h **** 	} while (0)
+ 187:asf/common/utils/interrupt/interrupt_avr32.h **** #  else
+ 188:asf/common/utils/interrupt/interrupt_avr32.h **** #    define cpu_irq_enable()     __enable_interrupt()
+ 189:asf/common/utils/interrupt/interrupt_avr32.h **** #    define cpu_irq_disable()    __disable_interrupt()
+ 190:asf/common/utils/interrupt/interrupt_avr32.h **** #  endif
+ 191:asf/common/utils/interrupt/interrupt_avr32.h **** #endif
+ 192:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 193:asf/common/utils/interrupt/interrupt_avr32.h **** typedef uint32_t irqflags_t;
+ 194:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 195:asf/common/utils/interrupt/interrupt_avr32.h **** static inline irqflags_t cpu_irq_save(void)
+ 196:asf/common/utils/interrupt/interrupt_avr32.h **** {
+ 197:asf/common/utils/interrupt/interrupt_avr32.h **** 	irqflags_t flags;
+ 198:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 199:asf/common/utils/interrupt/interrupt_avr32.h **** 	flags = sysreg_read(AVR32_SR);
+ 74429              		.loc 48 199 0
+ 74430 0000 E1BA0000 		mfsr	r10, 0
+ 200:asf/common/utils/interrupt/interrupt_avr32.h **** 	cpu_irq_disable();
+ 74431              		.loc 48 200 0
+ 74432 0004 D303     		ssrf    16
+ 74433              	.LBE23:
+ 74434              	.LBE22:
+ 169:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	while (!(AVR32_PM.poscsr & (1U << AVR32_PM_POSCSR_MSKRDY))) {
+ 74435              		.loc 1 169 0
+ 74436 0006 FE780C00 		mov	r8, -62464
+ 74437              	.L4:
+ 74438 000a 7159     		ld.w	r9, r8[84]
+ 74439 000c E2190040 		andl	r9, 64, COH
+ 74440 0010 CFD0     		breq .L4
+ 174:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask = *(&AVR32_PM.cpumask + bus_id);
+ 74441              		.loc 1 174 0
+ 74442 0012 A36C     		lsl     r12, 2
+ 74443              	.LVL1:
+ 74444 0014 E02CF3F8 		sub     r12, 62456
+ 74445 0018 7809     		ld.w	r9, r12[0]
+ 74446              	.LVL2:
+ 175:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask &= ~(1U << module_index);
+ 74447              		.loc 1 175 0
+ 74448 001a 3018     		mov	r8, 1
+ 74449 001c F00B0948 		lsl     r8, r8, r11
+ 74450 0020 5CD8     		com	r8
+ 74451 0022 1268     		and	r8, r9
+ 74452              	.LVL3:
+ 176:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	*(&AVR32_PM.cpumask + bus_id) = mask;
+ 74453              		.loc 1 176 0
+ 74454 0024 9908     		st.w	r12[0], r8
+ 74455              	.LBB24:
+ 74456              	.LBB25:
+ 201:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 202:asf/common/utils/interrupt/interrupt_avr32.h **** 	return flags;
+ 203:asf/common/utils/interrupt/interrupt_avr32.h **** }
+ 204:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 205:asf/common/utils/interrupt/interrupt_avr32.h **** static inline bool cpu_irq_is_enabled_flags(irqflags_t flags)
+ 206:asf/common/utils/interrupt/interrupt_avr32.h **** {
+ 207:asf/common/utils/interrupt/interrupt_avr32.h **** 	return !(flags & AVR32_SR_GM_MASK);
+ 208:asf/common/utils/interrupt/interrupt_avr32.h **** }
+ 209:asf/common/utils/interrupt/interrupt_avr32.h **** 
+ 210:asf/common/utils/interrupt/interrupt_avr32.h **** static inline void cpu_irq_restore(irqflags_t flags)
+ 211:asf/common/utils/interrupt/interrupt_avr32.h **** {
+ 212:asf/common/utils/interrupt/interrupt_avr32.h **** 	barrier();
+ 74457              		.loc 48 212 0
+ 213:asf/common/utils/interrupt/interrupt_avr32.h **** #if defined(__ICCAVR32__)
+ 214:asf/common/utils/interrupt/interrupt_avr32.h ****    // Barrier " __asm__ __volatile__ ("")"
+ 215:asf/common/utils/interrupt/interrupt_avr32.h ****    // Don't work with sysreg_write(AVR32_SR, flags)
+ 216:asf/common/utils/interrupt/interrupt_avr32.h ****    if( cpu_irq_is_enabled_flags(flags) ) {
+ 217:asf/common/utils/interrupt/interrupt_avr32.h ****       cpu_irq_enable();
+ 218:asf/common/utils/interrupt/interrupt_avr32.h ****    }
+ 219:asf/common/utils/interrupt/interrupt_avr32.h **** #else
+ 220:asf/common/utils/interrupt/interrupt_avr32.h **** 	sysreg_write(AVR32_SR, flags);
+ 74458              		.loc 48 220 0
+ 74459 0026 E3BA0000 		mtsr	0, r10
+ 221:asf/common/utils/interrupt/interrupt_avr32.h **** #endif
+ 222:asf/common/utils/interrupt/interrupt_avr32.h **** 	barrier();
+ 74460              		.loc 48 222 0
+ 74461              	.LBE25:
+ 74462              	.LBE24:
+ 179:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 74463              		.loc 1 179 0
+ 74464 002a 5EFC     		retal	r12
+ 74465              	.LFE43:
+ 74467              		.section	.text.sysclk_disable_pbb_module,"ax",@progbits
+ 74468              		.align	1
+ 74469              		.global	sysclk_disable_pbb_module
+ 74471              	sysclk_disable_pbb_module:
+ 74472              	.LFB45:
+ 209:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 74473              		.loc 1 209 0
+ 74474              		# args = 0, frame = 0, pretend = 0
+ 74475              		# frame_needed = 0, leaf_function = 0
+ 74476              		# uses_anonymous_args = 0
+ 74477              	.LVL4:
+ 74478 0000 EBCD4080 		stm	--sp, r7, lr
+ 74479              	.LCFI0:
+ 213:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_priv_disable_module(AVR32_PM_CLK_GRP_PBB, index);
+ 74480              		.loc 1 213 0
+ 74481 0004 189B     		mov	r11, r12
+ 74482 0006 303C     		mov	r12, 3
+ 74483              	.LVL5:
+ 74484 0008 F01F000A 		call	sysclk_priv_disable_module
+ 74485              	.LBB26:
+ 74486              	.LBB27:
+ 199:asf/common/utils/interrupt/interrupt_avr32.h **** 	flags = sysreg_read(AVR32_SR);
+ 74487              		.loc 48 199 0
+ 74488 000c E1B70000 		mfsr	r7, 0
+ 200:asf/common/utils/interrupt/interrupt_avr32.h **** 	cpu_irq_disable();
+ 74489              		.loc 48 200 0
+ 74490 0010 D303     		ssrf    16
+ 74491              	.LBE27:
+ 74492              	.LBE26:
+ 218:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_pbb_refcount--;
+ 74493              		.loc 1 218 0
+ 74494 0012 4899     		lda.w	r9, .LANCHOR0
+ 74495 0014 1388     		ld.ub	r8, r9[0]
+ 74496 0016 2018     		sub     r8, 1
+ 74497 0018 5C58     		castu.b	r8
+ 74498 001a B288     		st.b	r9[0], r8
+ 219:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	if (!sysclk_pbb_refcount)
+ 74499              		.loc 1 219 0
+ 74500 001c C051     		brne .L8
+ 74501              	.LBB28:
+ 74502              	.LBB29:
+   1:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+   2:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \file
+   3:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+   4:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Chip-specific system clock management functions
+   5:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+   6:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * Copyright (C) 2010 Atmel Corporation. All rights reserved.
+   7:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+   8:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \page License
+   9:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+  10:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * Redistribution and use in source and binary forms, with or without
+  11:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * modification, are permitted provided that the following conditions are met:
+  12:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+  13:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * 1. Redistributions of source code must retain the above copyright notice,
+  14:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * this list of conditions and the following disclaimer.
+  15:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+  16:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  17:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * this list of conditions and the following disclaimer in the documentation
+  18:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * and/or other materials provided with the distribution.
+  19:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+  20:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * 3. The name of Atmel may not be used to endorse or promote products derived
+  21:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * from this software without specific prior written permission.
+  22:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+  23:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * 4. This software may only be redistributed and used in connection with an
+  24:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * Atmel AVR product.
+  25:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+  26:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
+  27:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  28:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
+  29:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
+  30:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  31:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  32:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  33:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  34:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+  35:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+  36:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * DAMAGE.
+  37:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+  38:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifndef CHIP_SYSCLK_H_INCLUDED
+  39:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define CHIP_SYSCLK_H_INCLUDED
+  40:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+  41:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifdef __cplusplus
+  42:asf/common/services/clock/uc3b0_b1/sysclk.h **** extern "C" {
+  43:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+  44:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+  45:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+  46:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \weakgroup sysclk_group
+  47:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * @{
+  48:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+  49:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+  50:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! \name System Clock Sources
+  51:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@{
+  52:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_SRC_RCSYS    0    //!< Use slow clock as main clock
+  53:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_SRC_OSC0     1    //!< Use OSC0 as main clock
+  54:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_SRC_PLL0     2    //!< Use PLL0 as main clock
+  55:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@}
+  56:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+  57:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! \name USB Clock Sources
+  58:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@{
+  59:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define USBCLK_SRC_OSC0     0    //!< Use OSC0
+  60:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define USBCLK_SRC_PLL0     1    //!< Use PLL0
+  61:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define USBCLK_SRC_PLL1     2    //!< Use PLL1
+  62:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@}
+  63:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+  64:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+  65:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! \name Clocks derived from the CPU clock
+  66:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@{
+  67:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_OCD        AVR32_OCD_CLK_CPU         //!< On-Chip Debug system
+  68:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_SYSTIMER   AVR32_CORE_CLK_CPU_COUNT  //!< COUNT/COMPARE registers
+  69:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@}
+  70:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+  71:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! \name Clocks derived from the HSB clock
+  72:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@{
+  73:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! Flash data interface
+  74:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_FLASHC_DATA  (AVR32_FLASHC_CLK_HSB % 32)
+  75:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! HSB<->PBA bridge
+  76:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_PBA_BRIDGE   (AVR32_HMATRIX_CLK_HSB_PBA_BRIDGE % 32)
+  77:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! HSB<->PBB bridge
+  78:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_PBB_BRIDGE   (AVR32_HMATRIX_CLK_HSB_PBB_BRIDGE % 32)
+  79:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! USBB DMA and FIFO interface
+  80:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_USBB_DATA    (AVR32_USBB_CLK_HSB % 32)
+  81:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! PDCA memory interface
+  82:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_PDCA_HSB     (AVR32_PDCA_CLK_HSB % 32)
+  83:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@}
+  84:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+  85:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! \name Clocks derived from the PBA clock
+  86:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@{
+  87:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! Internal interrupt controller
+  88:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_INTC         (AVR32_INTC_CLK_PBA % 32)
+  89:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! General-Purpose I/O
+  90:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_GPIO         (AVR32_GPIO_CLK_PBA % 32)
+  91:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! PDCA peripheral bus interface
+  92:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_PDCA_PB      (AVR32_PDCA_CLK_PBA % 32)
+  93:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! PM/RTC/EIM configuration
+  94:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_PM           (AVR32_PM_CLK_PBA % 32)
+  95:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! A/D Converter
+  96:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_ADC          (AVR32_ADC_CLK_PBA % 32)
+  97:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! SPI Controller 0
+  98:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_SPI          (AVR32_SPI_CLK_PBA % 32)
+  99:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! TWI Controller
+ 100:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_TWI          (AVR32_TWI_CLK_PBA % 32)
+ 101:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! USART 0
+ 102:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_USART0       (AVR32_USART0_CLK_PBA % 32)
+ 103:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! USART 1
+ 104:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_USART1       (AVR32_USART1_CLK_PBA % 32)
+ 105:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! USART 2
+ 106:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_USART2       (AVR32_USART2_CLK_PBA % 32)
+ 107:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! PWM
+ 108:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_PWM          (AVR32_PWM_CLK_PBA % 32)
+ 109:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! Synchronous Serial Controller
+ 110:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_SSC          (AVR32_SSC_CLK_PBA % 32)
+ 111:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! Timer/Counter
+ 112:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_TC           (AVR32_TC_CLK_PBA % 32)
+ 113:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! D/A Converter
+ 114:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_DAC          (AVR32_ABDAC_CLK_PBA % 32)
+ 115:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@}
+ 116:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 117:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! \name Clocks derived from the PBB clock
+ 118:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@{
+ 119:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! HSB Matrix configuration
+ 120:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_HMATRIX      (AVR32_HMATRIX_CLK_PBB % 32)
+ 121:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! USBB registers
+ 122:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_USBB_REGS    (AVR32_USBB_CLK_PBB % 32)
+ 123:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! Flash Controller registers
+ 124:asf/common/services/clock/uc3b0_b1/sysclk.h **** #define SYSCLK_FLASHC_REGS  (AVR32_FLASHC_CLK_PBB % 32)
+ 125:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@}
+ 126:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 127:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifndef __ASSEMBLY__
+ 128:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 129:asf/common/services/clock/uc3b0_b1/sysclk.h **** #include <avr32/io.h>
+ 130:asf/common/services/clock/uc3b0_b1/sysclk.h **** #include <osc.h>
+ 131:asf/common/services/clock/uc3b0_b1/sysclk.h **** #include <pll.h>
+ 132:asf/common/services/clock/uc3b0_b1/sysclk.h **** #include <genclk.h>
+ 133:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 134:asf/common/services/clock/uc3b0_b1/sysclk.h **** // Use the slow clock (RCOSC) with no prescaling if config was empty.
+ 135:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifndef CONFIG_SYSCLK_SOURCE
+ 136:asf/common/services/clock/uc3b0_b1/sysclk.h **** # define CONFIG_SYSCLK_SOURCE    SYSCLK_SRC_RCSYS
+ 137:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif /* CONFIG_SYSCLK_SOURCE */
+ 138:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 139:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 140:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \def CONFIG_SYSCLK_CPU_DIV
+ 141:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Configuration symbol for dividing the CPU clock frequency by
+ 142:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \f$2^{CONFIG\_SYSCLK\_CPU\_DIV}\f$
+ 143:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 144:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * If this symbol is not defined, the CPU clock frequency is not divided.
+ 145:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 146:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * This symbol may be defined in \ref conf_clock.h.
+ 147:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 148:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifndef CONFIG_SYSCLK_CPU_DIV
+ 149:asf/common/services/clock/uc3b0_b1/sysclk.h **** # define CONFIG_SYSCLK_CPU_DIV   0
+ 150:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif /* CONFIG_SYSCLK_CPU_DIV */
+ 151:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 152:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 153:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \def CONFIG_SYSCLK_INIT_HSBMASK
+ 154:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Configuration symbol for the HSB clocks enabled at power-on after the
+ 155:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * sysclock module has been initialized. By default, all HSB clocks are left
+ 156:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * enabled, however to save power these can be automatically disabled by defining
+ 157:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * this value to a mask of \c SYSCLOCK_xxx settings.
+ 158:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 159:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * If this symbol is not defined, then all HSB clocks are left enabled.
+ 160:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 161:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * This symbol may be defined in \ref conf_clock.h.
+ 162:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 163:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifdef __DOXYGEN__
+ 164:asf/common/services/clock/uc3b0_b1/sysclk.h **** # define CONFIG_SYSCLK_INIT_HSBMASK
+ 165:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 166:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 167:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 168:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \def CONFIG_SYSCLK_PBA_DIV
+ 169:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Configuration symbol for dividing the PBA clock frequency by
+ 170:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \f$2^{CONFIG\_SYSCLK\_PBA\_DIV}\f$
+ 171:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 172:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * If this symbol is not defined, the PBA clock frequency is not divided.
+ 173:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 174:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * This symbol may be defined in \ref conf_clock.h.
+ 175:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 176:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifndef CONFIG_SYSCLK_PBA_DIV
+ 177:asf/common/services/clock/uc3b0_b1/sysclk.h **** # define CONFIG_SYSCLK_PBA_DIV   0
+ 178:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif /* CONFIG_SYSCLK_PBA_DIV */
+ 179:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 180:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 181:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \def CONFIG_SYSCLK_PBB_DIV
+ 182:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Configuration symbol for dividing the PBB clock frequency by
+ 183:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \f$2^{CONFIG\_SYSCLK\_PBB\_DIV}\f$
+ 184:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 185:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * If this symbol is not defined, the PBB clock frequency is not divided.
+ 186:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 187:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * This symbol may be defined in \ref conf_clock.h.
+ 188:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 189:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifndef CONFIG_SYSCLK_PBB_DIV
+ 190:asf/common/services/clock/uc3b0_b1/sysclk.h **** # define CONFIG_SYSCLK_PBB_DIV   0
+ 191:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif /* CONFIG_SYSCLK_PBB_DIV */
+ 192:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 193:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 194:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \def CONFIG_SYSCLK_INIT_CPUMASK
+ 195:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Configuration symbol for the CPU clocks enabled at power-on after the
+ 196:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * sysclock module has been initialized. By default, all CPU clocks are left
+ 197:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * enabled, however to save power these can be automatically disabled by defining
+ 198:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * this value to a mask of \c SYSCLOCK_xxx settings.
+ 199:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 200:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * If this symbol is not defined, then all CPU clocks are left enabled.
+ 201:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 202:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * This symbol may be defined in \ref conf_clock.h.
+ 203:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 204:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifdef __DOXYGEN__
+ 205:asf/common/services/clock/uc3b0_b1/sysclk.h **** # define CONFIG_SYSCLK_INIT_CPUMASK
+ 206:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 207:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 208:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 209:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \def CONFIG_SYSCLK_INIT_PBAMASK
+ 210:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Configuration symbol for the PBA clocks enabled at power-on after the
+ 211:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * sysclock module has been initialized. By default, all PBA clocks are left
+ 212:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * enabled, however to save power these can be automatically disabled by defining
+ 213:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * this value to a mask of \c SYSCLOCK_xxx settings.
+ 214:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 215:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * If this symbol is not defined, then all PBA clocks are left enabled.
+ 216:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 217:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * This symbol may be defined in \ref conf_clock.h.
+ 218:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 219:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifdef __DOXYGEN__
+ 220:asf/common/services/clock/uc3b0_b1/sysclk.h **** # define CONFIG_SYSCLK_INIT_PBAMASK
+ 221:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 222:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 223:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 224:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \def CONFIG_SYSCLK_INIT_PBBMASK
+ 225:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Configuration symbol for the PBB clocks enabled at power-on after the
+ 226:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * sysclock module has been initialized. By default, all PBB clocks are left
+ 227:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * enabled, however to save power these can be automatically disabled by defining
+ 228:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * this value to a mask of \c SYSCLOCK_xxx settings.
+ 229:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 230:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * If this symbol is not defined, then all PBB clocks are left enabled.
+ 231:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 232:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * This symbol may be defined in \ref conf_clock.h.
+ 233:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 234:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifdef __DOXYGEN__
+ 235:asf/common/services/clock/uc3b0_b1/sysclk.h **** # define CONFIG_SYSCLK_INIT_PBBMASK
+ 236:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 237:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 238:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 239:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \def CONFIG_USBCLK_SOURCE
+ 240:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Configuration symbol for the USB generic clock source
+ 241:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 242:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * Sets the clock source to use for the USB. The source must also be properly
+ 243:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * configured.
+ 244:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 245:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * Define this to one of the \c USBCLK_SRC_xxx settings. Leave it undefined if
+ 246:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * USB is not required.
+ 247:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 248:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifdef __DOXYGEN__
+ 249:asf/common/services/clock/uc3b0_b1/sysclk.h **** # define CONFIG_USBCLK_SOURCE
+ 250:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 251:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 252:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 253:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \def CONFIG_USBCLK_DIV
+ 254:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Configuration symbol for the USB generic clock divider setting
+ 255:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 256:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * Sets the clock division for the USB generic clock. If a USB clock source is
+ 257:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * selected with CONFIG_USBCLK_SOURCE, this configuration symbol must also be
+ 258:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * defined.
+ 259:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 260:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * Define this as any value that does not exceed \c GENCLK_DIV_MAX, and which
+ 261:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * will give a 48 MHz clock frequency from the selected source.
+ 262:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 263:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifdef __DOXYGEN__
+ 264:asf/common/services/clock/uc3b0_b1/sysclk.h **** # define CONFIG_USBCLK_DIV
+ 265:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 266:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 267:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 268:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \name Querying the system clock and its derived clocks
+ 269:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 270:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * The following functions may be used to query the current frequency of
+ 271:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * the system clock and the CPU and bus clocks derived from it.
+ 272:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * sysclk_get_main_hz() and sysclk_get_cpu_hz() can be assumed to be
+ 273:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * available on all platforms, although some platforms may define
+ 274:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * additional accessors for various chip-internal bus clocks. These are
+ 275:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * usually not intended to be queried directly by generic code.
+ 276:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 277:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@{
+ 278:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 279:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 280:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Return the current rate in Hz of the main system clock
+ 281:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 282:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \todo This function assumes that the main clock source never changes
+ 283:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * once it's been set up, and that PLL0 always runs at the compile-time
+ 284:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * configured default rate. While this is probably the most common
+ 285:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * configuration, which we want to support as a special case for
+ 286:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * performance reasons, we will at some point need to support more
+ 287:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * dynamic setups as well.
+ 288:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 289:asf/common/services/clock/uc3b0_b1/sysclk.h **** #if (defined CONFIG_SYSCLK_DEFAULT_RETURNS_SLOW_OSC)
+ 290:asf/common/services/clock/uc3b0_b1/sysclk.h **** extern bool sysclk_initialized;
+ 291:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 292:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline uint32_t sysclk_get_main_hz(void)
+ 293:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
+ 294:asf/common/services/clock/uc3b0_b1/sysclk.h **** #if (defined CONFIG_SYSCLK_DEFAULT_RETURNS_SLOW_OSC)
+ 295:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	if (!sysclk_initialized ) {
+ 296:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		return OSC_SLOW_NOMINAL_HZ;
+ 297:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	}
+ 298:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 299:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 300:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	switch (CONFIG_SYSCLK_SOURCE) {
+ 301:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case SYSCLK_SRC_RCSYS:
+ 302:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		return OSC_SLOW_NOMINAL_HZ;
+ 303:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 304:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifdef BOARD_OSC0_HZ
+ 305:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case SYSCLK_SRC_OSC0:
+ 306:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		return BOARD_OSC0_HZ;
+ 307:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 308:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 309:asf/common/services/clock/uc3b0_b1/sysclk.h **** #ifdef CONFIG_PLL0_SOURCE
+ 310:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case SYSCLK_SRC_PLL0:
+ 311:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		return pll_get_default_rate(0);
+ 312:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 313:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 314:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	default:
+ 315:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		/* unhandled_case(CONFIG_SYSCLK_SOURCE); */
+ 316:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		return 0;
+ 317:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	}
+ 318:asf/common/services/clock/uc3b0_b1/sysclk.h **** }
+ 319:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 320:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 321:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Return the current rate in Hz of the CPU clock
+ 322:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 323:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \todo This function assumes that the CPU always runs at the system
+ 324:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * clock frequency. We want to support at least two more scenarios:
+ 325:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * Fixed CPU/bus clock dividers (config symbols) and dynamic CPU/bus
+ 326:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * clock dividers (which may change at run time). Ditto for all the bus
+ 327:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * clocks.
+ 328:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 329:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \return Frequency of the CPU clock, in Hz.
+ 330:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 331:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline uint32_t sysclk_get_cpu_hz(void)
+ 332:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
+ 333:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	return sysclk_get_main_hz() >> CONFIG_SYSCLK_CPU_DIV;
+ 334:asf/common/services/clock/uc3b0_b1/sysclk.h **** }
+ 335:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 336:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 337:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Return the current rate in Hz of the High-Speed Bus clock
+ 338:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 339:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \return Frequency of the High Speed Peripheral Bus clock, in Hz.
+ 340:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 341:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline uint32_t sysclk_get_hsb_hz(void)
+ 342:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
+ 343:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	return sysclk_get_main_hz() >> CONFIG_SYSCLK_CPU_DIV;
+ 344:asf/common/services/clock/uc3b0_b1/sysclk.h **** }
+ 345:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 346:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 347:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Return the current rate in Hz of the Peripheral Bus A clock
+ 348:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 349:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \return Frequency of the Peripheral Bus A clock, in Hz.
+ 350:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 351:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline uint32_t sysclk_get_pba_hz(void)
+ 352:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
+ 353:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	return sysclk_get_main_hz() >> CONFIG_SYSCLK_PBA_DIV;
+ 354:asf/common/services/clock/uc3b0_b1/sysclk.h **** }
+ 355:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 356:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 357:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Return the current rate in Hz of the Peripheral Bus B clock
+ 358:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 359:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \return Frequency of the Peripheral Bus B clock, in Hz.
+ 360:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 361:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline uint32_t sysclk_get_pbb_hz(void)
+ 362:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
+ 363:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	return sysclk_get_main_hz() >> CONFIG_SYSCLK_CPU_DIV;
+ 364:asf/common/services/clock/uc3b0_b1/sysclk.h **** }
+ 365:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 366:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 367:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Retrieves the current rate in Hz of the Peripheral Bus clock attached
+ 368:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *        to the specified peripheral.
+ 369:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 370:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \param module Pointer to the module's base address.
+ 371:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
+ 372:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \return Frequency of the bus attached to the specified peripheral, in Hz.
+ 373:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 374:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline uint32_t sysclk_get_peripheral_bus_hz(const volatile void *module)
+ 375:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
+ 376:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	/* Fallthroughs intended for modules sharing the same peripheral bus. */
+ 377:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	switch ((uintptr_t)module) {
+ 378:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_INTC_ADDRESS:
+ 379:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_GPIO_ADDRESS:
+ 380:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_PDCA_ADDRESS:
+ 381:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_PM_ADDRESS:
+ 382:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_ADC_ADDRESS:
+ 383:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_SPI_ADDRESS:
+ 384:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_TWI_ADDRESS:
+ 385:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_USART0_ADDRESS:
+ 386:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_USART1_ADDRESS:
+ 387:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_USART2_ADDRESS:
+ 388:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_PWM_ADDRESS:
+ 389:asf/common/services/clock/uc3b0_b1/sysclk.h **** #if defined(AVR32_SSC)
+ 390:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_SSC_ADDRESS:
+ 391:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 392:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_TC_ADDRESS:
+ 393:asf/common/services/clock/uc3b0_b1/sysclk.h **** #if defined(AVR32_ABDAC)	
+ 394:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_ABDAC_ADDRESS:
+ 395:asf/common/services/clock/uc3b0_b1/sysclk.h **** #endif
+ 396:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		return sysclk_get_pba_hz();
+ 397:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 398:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_HMATRIX_ADDRESS:
+ 399:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_USBB_ADDRESS:
+ 400:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	case AVR32_FLASHC_ADDRESS:
+ 401:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		return sysclk_get_pbb_hz();
+ 402:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 403:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	default:
+ 404:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		Assert(false);
+ 405:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		return 0;
+ 406:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	}
+ 407:asf/common/services/clock/uc3b0_b1/sysclk.h **** }
+ 408:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 409:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@}
+ 410:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 411:asf/common/services/clock/uc3b0_b1/sysclk.h **** extern void sysclk_priv_enable_module(unsigned int bus_id,
+ 412:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		unsigned int module_index);
+ 413:asf/common/services/clock/uc3b0_b1/sysclk.h **** extern void sysclk_priv_disable_module(unsigned int bus_id,
+ 414:asf/common/services/clock/uc3b0_b1/sysclk.h **** 		unsigned int module_index);
+ 415:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 416:asf/common/services/clock/uc3b0_b1/sysclk.h **** //! \name Enabling and disabling synchronous clocks
+ 417:asf/common/services/clock/uc3b0_b1/sysclk.h **** //@{
+ 418:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 419:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 420:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Enable a module clock derived from the CPU clock
+ 421:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \param index Index of the module clock in the CPUMASK register
+ 422:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 423:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline void sysclk_enable_cpu_module(unsigned int index)
+ 424:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
+ 425:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	sysclk_priv_enable_module(AVR32_PM_CLK_GRP_CPU, index);
+ 426:asf/common/services/clock/uc3b0_b1/sysclk.h **** }
+ 427:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 428:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 429:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Disable a module clock derived from the CPU clock
+ 430:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \param index Index of the module clock in the CPUMASK register
+ 431:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 432:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline void sysclk_disable_cpu_module(unsigned int index)
+ 433:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
+ 434:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	sysclk_priv_disable_module(AVR32_PM_CLK_GRP_CPU, index);
+ 435:asf/common/services/clock/uc3b0_b1/sysclk.h **** }
+ 436:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 437:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 438:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Enable a module clock derived from the HSB clock
+ 439:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \param index Index of the module clock in the HSBMASK register
+ 440:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 441:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline void sysclk_enable_hsb_module(unsigned int index)
+ 442:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
+ 443:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	sysclk_priv_enable_module(AVR32_PM_CLK_GRP_HSB, index);
+ 444:asf/common/services/clock/uc3b0_b1/sysclk.h **** }
+ 445:asf/common/services/clock/uc3b0_b1/sysclk.h **** 
+ 446:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
+ 447:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \brief Disable a module clock derived from the HSB clock
+ 448:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \param index Index of the module clock in the HSBMASK register
+ 449:asf/common/services/clock/uc3b0_b1/sysclk.h ****  */
+ 450:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline void sysclk_disable_hsb_module(unsigned int index)
+ 451:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
+ 452:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	sysclk_priv_disable_module(AVR32_PM_CLK_GRP_HSB, index);
+ 74503              		.loc 52 452 0
+ 74504 001e 302B     		mov	r11, 2
+ 74505 0020 301C     		mov	r12, 1
+ 74506 0022 F01F0004 		call	sysclk_priv_disable_module
+ 74507              	.L8:
+ 74508              	.LBE29:
+ 74509              	.LBE28:
+ 74510              	.LBB30:
+ 74511              	.LBB31:
+ 212:asf/common/utils/interrupt/interrupt_avr32.h **** 	barrier();
+ 74512              		.loc 48 212 0
+ 220:asf/common/utils/interrupt/interrupt_avr32.h **** 	sysreg_write(AVR32_SR, flags);
+ 74513              		.loc 48 220 0
+ 74514 0026 E3B70000 		mtsr	0, r7
+ 74515              		.loc 48 222 0
+ 74516              	.LBE31:
+ 74517              	.LBE30:
+ 223:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 74518              		.loc 1 223 0
+ 74519 002a E3CD8080 		ldm	sp++, r7, pc
+ 74520 002e 00000000 		.cpool
+ 74520      00000000 
+ 74520      0000
+ 74521              		.align	2
+ 74522              	.L10:
+ 74523              	.LFE45:
+ 74525              		.section	.text.sysclk_priv_enable_module,"ax",@progbits
+ 74526              		.align	1
+ 74527              		.global	sysclk_priv_enable_module
+ 74529              	sysclk_priv_enable_module:
+ 74530              	.LFB42:
+ 129:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 74531              		.loc 1 129 0
+ 74532              		# args = 0, frame = 0, pretend = 0
+ 74533              		# frame_needed = 0, leaf_function = 1
+ 74534              		# uses_anonymous_args = 0
+ 74535              	.LVL6:
+ 74536              	.LBB32:
+ 74537              	.LBB33:
+ 199:asf/common/utils/interrupt/interrupt_avr32.h **** 	flags = sysreg_read(AVR32_SR);
+ 74538              		.loc 48 199 0
+ 74539 0000 E1BA0000 		mfsr	r10, 0
+ 200:asf/common/utils/interrupt/interrupt_avr32.h **** 	cpu_irq_disable();
+ 74540              		.loc 48 200 0
+ 74541 0004 D303     		ssrf    16
+ 74542              	.LBE33:
+ 74543              	.LBE32:
+ 139:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	while (!(AVR32_PM.poscsr & (1U << AVR32_PM_POSCSR_MSKRDY))) {
+ 74544              		.loc 1 139 0
+ 74545 0006 FE780C00 		mov	r8, -62464
+ 74546              	.L12:
+ 74547 000a 7159     		ld.w	r9, r8[84]
+ 74548 000c E2190040 		andl	r9, 64, COH
+ 74549 0010 CFD0     		breq .L12
+ 144:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask = *(&AVR32_PM.cpumask + bus_id);
+ 74550              		.loc 1 144 0
+ 74551 0012 A36C     		lsl     r12, 2
+ 74552              	.LVL7:
+ 74553 0014 E02CF3F8 		sub     r12, 62456
+ 74554 0018 7808     		ld.w	r8, r12[0]
+ 74555              	.LVL8:
+ 145:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask |= 1U << module_index;
+ 74556              		.loc 1 145 0
+ 74557 001a 3019     		mov	r9, 1
+ 74558 001c F20B094B 		lsl     r11, r9, r11
+ 74559              	.LVL9:
+ 74560 0020 104B     		or	r11, r8
+ 74561              	.LVL10:
+ 146:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	*(&AVR32_PM.cpumask + bus_id) = mask;
+ 74562              		.loc 1 146 0
+ 74563 0022 990B     		st.w	r12[0], r11
+ 74564              	.LBB34:
+ 74565              	.LBB35:
+ 212:asf/common/utils/interrupt/interrupt_avr32.h **** 	barrier();
+ 74566              		.loc 48 212 0
+ 220:asf/common/utils/interrupt/interrupt_avr32.h **** 	sysreg_write(AVR32_SR, flags);
+ 74567              		.loc 48 220 0
+ 74568 0024 E3BA0000 		mtsr	0, r10
+ 74569              		.loc 48 222 0
+ 74570              	.LBE35:
+ 74571              	.LBE34:
+ 149:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 74572              		.loc 1 149 0
+ 74573 0028 5EFC     		retal	r12
+ 74574              	.LFE42:
+ 74576              		.section	.text.sysclk_enable_pbb_module,"ax",@progbits
+ 74577              		.align	1
+ 74578              		.global	sysclk_enable_pbb_module
+ 74580              	sysclk_enable_pbb_module:
+ 74581              	.LFB44:
+ 188:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
+ 74582              		.loc 1 188 0
+ 74583              		# args = 0, frame = 0, pretend = 0
+ 74584              		# frame_needed = 0, leaf_function = 0
+ 74585              		# uses_anonymous_args = 0
+ 74586              	.LVL11:
+ 74587 0000 EBCD40C0 		stm	--sp, r6, r7, lr
+ 74588              	.LCFI1:
+ 74589 0004 1897     		mov	r7, r12
+ 74590              	.LBB36:
+ 74591              	.LBB37:
+ 199:asf/common/utils/interrupt/interrupt_avr32.h **** 	flags = sysreg_read(AVR32_SR);
+ 74592              		.loc 48 199 0
+ 74593 0006 E1B60000 		mfsr	r6, 0
+ 200:asf/common/utils/interrupt/interrupt_avr32.h **** 	cpu_irq_disable();
+ 74594              		.loc 48 200 0
+ 74595 000a D303     		ssrf    16
+ 74596              	.LBE37:
+ 74597              	.LBE36:
+ 194:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	if (!sysclk_pbb_refcount)
+ 74598              		.loc 1 194 0
+ 74599 000c 48B8     		lda.w	r8, .LANCHOR0
+ 74600 000e 1189     		ld.ub	r9, r8[0]
+ 74601 0010 3008     		mov	r8, 0
+ 74602 0012 F0091800 		cp.b	r9, r8
+ 74603 0016 C051     		brne .L16
+ 74604              	.LVL12:
+ 74605              	.LBB38:
+ 74606              	.LBB39:
+ 443:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	sysclk_priv_enable_module(AVR32_PM_CLK_GRP_HSB, index);
+ 74607              		.loc 52 443 0
+ 74608 0018 302B     		mov	r11, 2
+ 74609 001a 301C     		mov	r12, 1
+ 74610 001c F01F0008 		call	sysclk_priv_enable_module
+ 74611              	.LVL13:
+ 74612              	.L16:
+ 74613              	.LBE39:
+ 74614              	.LBE38:
+ 196:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_pbb_refcount++;
+ 74615              		.loc 1 196 0
+ 74616 0020 4868     		lda.w	r8, .LANCHOR0
+ 74617 0022 1189     		ld.ub	r9, r8[0]
+ 74618 0024 2FF9     		sub     r9, -1
+ 74619 0026 B089     		st.b	r8[0], r9
+ 74620              	.LBB40:
+ 74621              	.LBB41:
+ 212:asf/common/utils/interrupt/interrupt_avr32.h **** 	barrier();
+ 74622              		.loc 48 212 0
+ 220:asf/common/utils/interrupt/interrupt_avr32.h **** 	sysreg_write(AVR32_SR, flags);
+ 74623              		.loc 48 220 0
+ 74624 0028 E3B60000 		mtsr	0, r6
+ 74625              		.loc 48 222 0
+ 74626              	.LBE41:
+ 74627              	.LBE40:
+ 201:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_priv_enable_module(AVR32_PM_CLK_GRP_PBB, index);
+ 74628              		.loc 1 201 0
+ 74629 002c 0E9B     		mov	r11, r7
+ 74630 002e 303C     		mov	r12, 3
+ 74631 0030 F01F0003 		call	sysclk_priv_enable_module
+ 202:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
+ 74632              		.loc 1 202 0
+ 74633 0034 E3CD80C0 		ldm	sp++, r6, r7, pc
+ 74634 0038 00000000 		.cpool
+ 74634      00000000 
+ 74635              		.align	2
+ 74636              	.L18:
+ 74637              	.LFE44:
+ 74639              		.section	.bss
+ 74640              		.set	.LANCHOR0,. + 0
+ 74643              	sysclk_pbb_refcount:
+ 74644 0000 00       		.zero	1
+ 74724              	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 sysclk.c
+C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74406  .text.sysclk_init:00000000 sysclk_init
+C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74420  .text.sysclk_priv_disable_module:00000000 sysclk_priv_disable_module
+C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74471  .text.sysclk_disable_pbb_module:00000000 sysclk_disable_pbb_module
+C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74529  .text.sysclk_priv_enable_module:00000000 sysclk_priv_enable_module
+C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74580  .text.sysclk_enable_pbb_module:00000000 sysclk_enable_pbb_module
+C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74643  .bss:00000000 sysclk_pbb_refcount
+
+NO UNDEFINED SYMBOLS
