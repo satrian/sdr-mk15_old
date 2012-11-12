@@ -1115,9 +1115,6 @@
     <None Include="uIP\libs\net_conf\Makefile.net_conf">
       <SubType>compile</SubType>
     </None>
-    <None Include="uIP\uip\uip.lst">
-      <SubType>compile</SubType>
-    </None>
     <None Include="uIP\uip\uip.o">
       <SubType>compile</SubType>
     </None>

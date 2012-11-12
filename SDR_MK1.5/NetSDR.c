@@ -736,6 +736,7 @@ void process_ctrl_item(uint16_t ctrlitem, uint8_t msgtype, char* payload, uint16
 uint32_t nw_freq, nw_samplerate;
 uint8_t regval;
 uint16_t vercode;
+static uint16_t SampleRateSet=0;
 
 	// command codes as per NetSDR v1.03 standard (2011-11-01)
 	// SDR MK1.5 specific modifications are marked with "[MK1.5]" tag
@@ -843,10 +844,13 @@ uint16_t vercode;
 				regval|=(1<<4);			// set MUX_MODE to 1, so both channels data is transmitted
 				WriteRegister(6, regval, 0);
 				InitIQDataEngine(_2X16BIT_IQ);			// configure SSC engine to fetch 4 words since both channel data is delivered during single frame sync. Force 16-bit here
+				// Note, that SampleMode() recalculates our ADC master clock to have the clocks dividing without jitter.
+				//SampleMode(48000, DUAL_CHANNEL, _16BIT);		// go with 16 bits for here and now (also recalculates LO frequencys)
 				datamode=DATA_AUDIO;	// return whole radio to default mode
 				memmove(netretdata+netretlen, "\x8\0\x18\0", 4);
 				memmove(netretdata+netretlen+4, "\x80\x1\0\0", 4);
 				netretlen+=4+4;
+				//SampleRateSet=0;		// needed because cutesdr is not setting sample rate for non-netsdr radios, so we have to track if sample rate is set or not
 			}
 			else if (payload[1] == 2)	// start command
 			{
@@ -884,6 +888,9 @@ uint16_t vercode;
 				regval&=~(1<<4);			// set MUX_MODE to 0, so only single channel data is transmitted
 				WriteRegister(6, regval, 0);
 				InitIQDataEngine(_1X16BIT_IQ);				// configure SSC engine to fetch 2 words since only single channel data is delivered during frame sync. Force 16-bit here
+				if (!SampleRateSet)
+					SampleMode(196078, SINGLE_CHANNEL, _16BIT);		// go with 16 bits for here and now (also recalculates LO frequencys)
+					
 				datamode=DATA_NETWORK;		// set radio to network mode
 				memmove(netretdata+netretlen, "\x8\0\x18\0", 4);
 				memmove(netretdata+netretlen+4, "\x80\x2\0\0", 4);
@@ -981,6 +988,9 @@ uint16_t vercode;
 
 			netretlen+=4+2;
 			break;
+			
+		case 0x40:	//UNDOCUMENTED. According to cutesdr source code, this is "RX_IF_GAIN"
+			break;
 
 		case 0x44:	//Controls the Analog RF Filter selection.
 					//2-byte payload
@@ -1011,13 +1021,14 @@ uint16_t vercode;
 			//	WriteRegister(5, 3, 0);
 
 
-			// Note, that SampleMode() should go and recalculate our ADC master clock to have the clocks dividing without jitter.
-			// This is not yet implemented tho ..!
+			// Note, that SampleMode() recalculates our ADC master clock to have the clocks dividing without jitter.
 			SampleMode(nw_samplerate, SINGLE_CHANNEL, _16BIT);	// go with 16 bits for here and now (also recalculates LO frequencys)
 
 			memmove(netretdata+netretlen, "\x9\0\xB8\0", 4);
 			memmove(netretdata+netretlen+4, payload, 5);
 			netretlen+=4+5;
+			
+			SampleRateSet=1;		// cutesdr does not set sample rate, so we have to check if this function has been called or not.
 
 			break;
 

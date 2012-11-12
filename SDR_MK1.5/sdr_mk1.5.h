@@ -76,6 +76,9 @@
 						-	24-bit mode is temporarily deprecated for audio and libusb modes (to be supported by network mode first)
 						-	Added dynamic CDCE913 frequency calculation for SetADCClock() (were using pre-defined values and fixed tables before)
 						-	Added command 'clock' to display current settings for CDCE913 chip
+						
+	V1.86 12.11.2012	-	Added default sample rate 196078 Hz for network modes to fix the cutesdr startup problem if no netsdr registry patch is applied
+							(cutesdr does not set SDR sample rate for non-netsdr radios in some reason)
 
  To Do:
 
@@ -112,9 +115,9 @@
 		- IPv6 support (far in the future ..)
  */
 
-#define	VERINFO		"v1.85"
+#define	VERINFO		"v1.86"
 #define VER_MAJOR	1
-#define VER_MINOR	85
+#define VER_MINOR	86
 
 /** \file
  *
