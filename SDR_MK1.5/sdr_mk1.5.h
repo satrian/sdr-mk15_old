@@ -76,10 +76,21 @@
 						-	24-bit mode is temporarily deprecated for audio and libusb modes (to be supported by network mode first)
 						-	Added dynamic CDCE913 frequency calculation for SetADCClock() (were using pre-defined values and fixed tables before)
 						-	Added command 'clock' to display current settings for CDCE913 chip
-						
-	V1.86 12.11.2012	-	Added default sample rate 196078 Hz for network modes to fix the cutesdr startup problem if no netsdr registry patch is applied
+
+	V1.86	12.11.2012	-	Added default sample rate 196078 Hz for network modes to fix the cutesdr startup problem if no netsdr registry patch is applied
 							(cutesdr does not set SDR sample rate for non-netsdr radios in some reason)
 
+	V1.87	13.11.2012	-	Implemented netsdr control message 0xC4 and added MK1.5 specific data mode 0x80 (large packet, big endian mode)
+	v1.88	14.11.2012	-	Implemented RF gain control message 0x38 for NetSDR protocol
+						-	Shell commands gain control logic revisited
+
+*/
+
+#define	VERINFO		"v1.88"
+#define VER_MAJOR	1
+#define VER_MINOR	88
+
+/*
  To Do:
 
 		* SSC Frame syncing
@@ -113,11 +124,8 @@
 		! DHCP lease renews itself every 5 minutes. This is no good, but as a workaround, the ip address nullification is disabled, so the lease is likely going to be rnewed to a same address.
 		  Works as a workaround for time being, but has to be reworked.
 		- IPv6 support (far in the future ..)
+		- NetSDR small and MK1.5 XLarge packet length support
  */
-
-#define	VERINFO		"v1.86"
-#define VER_MAJOR	1
-#define VER_MINOR	86
 
 /** \file
  *

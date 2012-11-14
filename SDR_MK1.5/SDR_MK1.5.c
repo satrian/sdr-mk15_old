@@ -206,7 +206,7 @@ volatile unsigned char activeVFO='0';			// used for sdr-radio VFO focus keeping
 
 int32_t phase_B=0;
 
-int16_t rfgain_A=6, rfgain_B=6;					// used just for displaying
+int16_t fixedgain_A=6, fixedgain_B=6;					// used just for displaying
 
 uint16_t plen;
 
@@ -320,8 +320,8 @@ void ShowHelp(void)
 
 	if (!AGCMode)
 	{
-	Message(1, "      RF Gain CH_A = %d\r\n", rfgain_A);
-	Message(1, "      RF Gain CH_B = %d\r\n", rfgain_B);
+	Message(1, "      RF Gain CH_A = %d\r\n", fixedgain_A);
+	Message(1, "      RF Gain CH_B = %d\r\n", fixedgain_B);
 	}
 
 	Message(1, "Software Gain CH_A = %d (exponent %s)\r\n", ReadRegister(3)+((ReadRegister(20)&1)*8),(ReadRegister(20)&1)?"fixed":"passed");
@@ -1030,9 +1030,9 @@ uint32_t fadc;
 	bitrate=samplefreq;
 	bitrate*=numbits*2;
 	bitrate*=channels;
-	bitrate+=samplefreq;		// add frame sync bits as well
+	bitrate+=samplefreq;					// add frame sync bits as well
 
-	if (bitrate > (64000000/4))
+	if (bitrate > (64000000/4))				// 480ksps in 16-bit single-channel mode max
 		maxadcclock = MAX_SAFE_DIV2_FADC;
 	else
 		maxadcclock = 64000000;
@@ -1920,6 +1920,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 																				//   |||++-- Reserved, do not use
 																				//   ||+---- AGC_HOLD_IC 0=normal closed loop operation 1=Hold integrator at initial condition.
 																				//   ++----- Bit shift value for AGC loop. Valid range is from 0 to 3
+								Message(1, "Use 'rfgs and rfgb commands to set gain manually.\r\n");
 							}
 						}
 						else
@@ -1935,11 +1936,11 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 								Message(1, "Compressor ON (exponent fixed), gainA=ganB=1\r\n");
 								WriteRegister(20, ReadRegister(20)|1, 1);	// force exponent
 																			// 00xxx01x
-																				//   ||||||
-																				//   |||||+- EXP_INH 0=allow exponent to pass into FLOAT TO FIXED converter 1=Force exponent in DDC channel to a 7 (max digital gain)
-																				//   |||++-- Reserved, do not use
-																				//   ||+---- AGC_HOLD_IC 0=normal closed loop operation 1=Hold integrator at initial condition.
-																				//   ++----- Bit shift value for AGC loop. Valid range is from 0 to 3
+																			//   ||||||
+																			//   |||||+- EXP_INH 0=allow exponent to pass into FLOAT TO FIXED converter 1=Force exponent in DDC channel to a 7 (max digital gain)
+																			//   |||++-- Reserved, do not use
+																			//   ||+---- AGC_HOLD_IC 0=normal closed loop operation 1=Hold integrator at initial condition.
+																			//   ++----- Bit shift value for AGC loop. Valid range is from 0 to 3
 								WriteRegister(3, 1, 1);	// gain A =1
 								WriteRegister(4, 1, 1);	// gain B =1
 
@@ -1949,8 +1950,10 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 								// turn off compressor (release exponent) and set gain to 4
 								Message(1, "Compressor OFF (exponent passed), gainA=ganB=4\r\n");
 								WriteRegister(20, ReadRegister(20)&0xFE, 1);	// pass exponent
-								WriteRegister(3, 4, 1);	// gain A =4
-								WriteRegister(4, 4, 1);	// gain B =4
+								SetGain(CH_A, 4);
+								SetGain(CH_B, 4);
+								//WriteRegister(3, 4, 1);	// gain A =4
+								//WriteRegister(4, 4, 1);	// gain B =4
 							}
 						}
 						else
@@ -1973,7 +1976,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 								if (rfgain<8)
 								{
 									Message(1, "RF (DVGA) Gain for CH_A set to %d (%s%ddB gain)\r\n", rfgain, (rfgain)?"+":"", rfgain*6);
-									rfgain_A=rfgain;
+									fixedgain_A=rfgain;
 									rfgain<<=5;
 									rfgain|=0x1F;
 									WriteRegister(23, ~(rfgain), 1);
@@ -2001,7 +2004,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 
 								if (rfgain<8)
 								{
-									rfgain_B=rfgain;
+									fixedgain_B=rfgain;
 									Message(1, "RF (DVGA) Gain for CH_B set to %d (%s%ddB gain)\r\n", rfgain, (rfgain)?"+":"", rfgain*6);
 									rfgain<<=5;
 									rfgain|=0x1F;

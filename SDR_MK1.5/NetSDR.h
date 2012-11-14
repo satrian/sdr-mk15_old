@@ -136,15 +136,29 @@ typedef struct
 void NetSDR_init(void);
 void NetSDR_Task(void);
 
-#define NETMAXDATA (12*1024)						// data area max size is two full 6K buffers (network chip maximum with one transfer)
+#define _0DB_GAIN		8								// gain value for SetGain() what coresponds to 0dB RF Gain setting
+
+#define NETMAXDATA (12*1024)							// data area max size is two full 6K buffers (network chip maximum with one transfer)
+
+// NetSDR modes
 
 #define NETDATAPACKETS24	8
-#define NETPKTLEN24			1440					// for 24-bit samples this has to be 1440 for CuteSDR to recognize correctly
+#define NETPKTLEN24			1440								// for 24-bit samples this has to be 1440 for CuteSDR to recognize correctly
 #define NETDATALEN24		(NETPKTLEN24*NETDATAPACKETS24)
 
 #define NETDATAPACKETS16	12
 #define NETPKTLEN16			1024							
 #define NETDATALEN16		(NETPKTLEN16*NETDATAPACKETS16)		// the size of the buffer filled by SSC DMA
+
+// SDR MK1.5 native modes
+
+#define NETDATAPACKETS24XL	2
+#define NETPKTLEN24XL		(4*1440)  							// for 24-bit samples this has to be 1440 for CuteSDR to recognize correctly
+#define NETDATALEN24XL		(NETPKTLEN24XL*NETDATAPACKETS24XL)
+
+#define NETDATAPACKETS16XL	2
+#define NETPKTLEN16XL		(5*1024)							
+#define NETDATALEN16XL		(NETPKTLEN16XL*NETDATAPACKETS16XL)		// the size of the buffer filled by SSC DMA
 
 #define SDR_PORT	50000
 #define SDR_UDP_DISCOVERY_HOST_PORT	48322

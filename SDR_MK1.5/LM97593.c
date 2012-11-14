@@ -87,6 +87,9 @@ volatile bool powered=false;		// tracking the radio chip power status.
 volatile uint8_t diversity=0;		// tracking diversity mode - set to 1 for diversity mode
 volatile uint8_t scanner=0;			// channel B in scanning mode
 
+int16_t GainCH_A=0;
+int16_t	GainCH_B=0;
+
 /*
 How to calculate filter coefficients:
 
@@ -415,8 +418,23 @@ uint8_t expfixed=0;
 			WriteRegister(20, ReadRegister(20)|1, 1);		// force exponent
 		}
 	}
+	
+	if (channel == CH_A)
+		GainCH_A=_gain;
+	else if (channel == CH_B)
+		GainCH_B=_gain;
 
 	return expfixed;
+}
+
+int16_t GetGain(int16_t channel)
+{
+	if (channel == CH_A)
+		return GainCH_A;
+	else if (channel == CH_B)
+		return GainCH_B;
+	else
+		return 0;
 }
 
 void Int2Phase(char* phasestore, int16_t phase)
@@ -424,8 +442,6 @@ void Int2Phase(char* phasestore, int16_t phase)
 	phasestore[0]=phase&0xFF;
 	phasestore[1]=(phase>>8)&0xFF;
 }
-
-
 
 
 uint64_t pow2(int16_t power)

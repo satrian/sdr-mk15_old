@@ -93,6 +93,9 @@ uip_ipaddr_t lastconnected;					// this is used for tracking the incoming connec
 extern u16_t uip_slen;
 extern void *uip_sappdata;
 
+extern int16_t GainCH_A;
+extern int16_t GainCH_B;
+
 extern struct dhcpc_state s;
 
 uint8_t ReverseEndian=1;					// if 1, the UDP sample data endian will be reversed
@@ -890,7 +893,7 @@ static uint16_t SampleRateSet=0;
 				InitIQDataEngine(_1X16BIT_IQ);				// configure SSC engine to fetch 2 words since only single channel data is delivered during frame sync. Force 16-bit here
 				if (!SampleRateSet)
 					SampleMode(196078, SINGLE_CHANNEL, _16BIT);		// go with 16 bits for here and now (also recalculates LO frequencys)
-					
+
 				datamode=DATA_NETWORK;		// set radio to network mode
 				memmove(netretdata+netretlen, "\x8\0\x18\0", 4);
 				memmove(netretdata+netretlen+4, "\x80\x2\0\0", 4);
@@ -976,19 +979,61 @@ static uint16_t SampleRateSet=0;
 
 			if (payloadlen == 1)
 			{
+			int16_t gain;
+
 				// get current gain
+				if (payload[0] == 0)
+					gain=GetGain(CH_A);
+				else
+					gain=GetGain(CH_B);
+
 				memmove(netretdata+netretlen+4, payload, 1);
-				memmove(netretdata+netretlen+5, "\xEC", 1);		// bogus gain at the moment
+
+				if (gain >= _0DB_GAIN)
+					memmove(netretdata+netretlen+5, "\0", 1);	//0dB
+				else if (gain >= (_0DB_GAIN-2))
+					memmove(netretdata+netretlen+5, "\xF6", 1);	//-10dB
+				else if (gain >= (_0DB_GAIN-4))
+					memmove(netretdata+netretlen+5, "\xEC", 1);	//-20dB
+				else //if (gain <= (_0DB_GAIN-5))
+					memmove(netretdata+netretlen+5, "\xE2", 1);	//-30dB
+
+
 			}
 			else if (payloadlen == 2)
 			{
+			int16_t channel;
+
+				if (payload[0] == 0)
+					channel=CH_A;
+				else
+					channel=CH_B;
+
+				switch(payload[1])
+				{
+					case 0:		//0dB
+						SetGain(channel, _0DB_GAIN);
+						break;
+
+					case 0xF6:	//-10dB
+						SetGain(channel, _0DB_GAIN-2);	// -12dB actually
+						break;
+
+					case 0xEC:	//-20dB
+						SetGain(channel, _0DB_GAIN-4);	// -24dB actually
+						break;
+
+					case 0xE2:	//-30dB
+						SetGain(channel, _0DB_GAIN-5);	// -30dB
+						break;
+				}
 				// set gain
-				memmove(netretdata+netretlen+4, payload, 2);
+				memmove(netretdata+netretlen+4, payload, 2);	// payload 2 is a gain: 0x00=0dB, 0xF6=-10dB, 0xEC=-20dB, 0xE2=-30dB
 			}
 
 			netretlen+=4+2;
 			break;
-			
+
 		case 0x40:	//UNDOCUMENTED. According to cutesdr source code, this is "RX_IF_GAIN"
 			break;
 
@@ -1014,20 +1059,13 @@ static uint16_t SampleRateSet=0;
 			// payload[0] is ignored, since all channels go with the same sample rate
 			nw_samplerate=payload[1]|(payload[2]<<8)|(payload[3]<<16)|(payload[4]<<24);
 
-			// increase clock speed for fast sample rates
-			//if (nw_samplerate > 500000)
-			//	WriteRegister(5, 1, 0);
-			//else
-			//	WriteRegister(5, 3, 0);
-
-
 			// Note, that SampleMode() recalculates our ADC master clock to have the clocks dividing without jitter.
 			SampleMode(nw_samplerate, SINGLE_CHANNEL, _16BIT);	// go with 16 bits for here and now (also recalculates LO frequencys)
 
 			memmove(netretdata+netretlen, "\x9\0\xB8\0", 4);
 			memmove(netretdata+netretlen+4, payload, 5);
 			netretlen+=4+5;
-			
+
 			SampleRateSet=1;		// cutesdr does not set sample rate, so we have to check if this function has been called or not.
 
 			break;
@@ -1056,7 +1094,29 @@ static uint16_t SampleRateSet=0;
 			break;
 
 		case 0xC4:	//Sets the UDP data packet size for the SDR.
-					//1-byte payload
+					//1-byte payload:
+					//	0 = (default) Large UDP packets (1444 bytes(24bit data) or 1028 bytes(16bit data)), little endian data
+					//	1 = (not supported currently) Small UDP packets (388 bytes(24bit data) or 516 bytes(16bit data)), little endian data
+					//	[MK1.5] 0x80 = Large UDP packets (1444 bytes(24bit data) or 1028 bytes(16bit data), BIG ENDIAN data
+					//	[MK1.5] 0x81 = (not supported currently) Small UDP packets (388 bytes(24bit data) or 516 bytes(16bit data)), BIG ENDIAN data
+					//	[MK1.5] 0x82 = (not supported currently) XtraLarge UDP packets (), BIG ENDIAN data
+
+			memmove(netretdata+netretlen, "\5\0\xC4\0", 4);
+			memmove(netretdata+netretlen+4, payload, 1);
+
+			switch(payload[0])
+			{
+				case 0x80:				//[MK1.5] 0x80 = Large UDP packets (1444 bytes(24bit data) or 1028 bytes(16bit data), BIG ENDIAN data
+					ReverseEndian=0;	//LM97593 already outputs bigendian data, so no need to swap bytes
+					break;
+
+				case 0:					//Large UDP packets (1444 bytes(24bit data) or 1028 bytes(16bit data) ) (default), little endian data
+				default:
+					ReverseEndian=1;	//by default we have to make data little-endian, so have to reverse
+					break;
+			}
+
+			netretlen+=4+1;
 			break;
 
 		case 0xC5:	//Sets the UDP IP address and Port number for the SDR data output.

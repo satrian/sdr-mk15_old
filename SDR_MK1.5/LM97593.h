@@ -152,6 +152,7 @@ uint8_t DiversityMode(uint8_t mode, uint32_t adcfreq);
 void SetFreq(int16_t channel, int32_t _freq, int16_t write, uint32_t adcfreq);
 void SetPhase(int16_t channel, uint16_t phaseword);
 uint8_t SetGain(int16_t channel, int16_t _gain);
+int16_t GetGain(int16_t channel);
 void Int2Phase(char* phasestore, int16_t phase);
 uint64_t pow2(int16_t power);
 uint64_t powX(uint64_t numvalue, int16_t power);
