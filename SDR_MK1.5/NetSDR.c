@@ -45,6 +45,9 @@
 
 #include <string.h>
 
+//#define USE_24BITNET	1
+//#define NAMETEST 1
+
 #if UIP_UDP
 #else
  #error UIP_UDP must be enabled for network support to work properly!
@@ -53,6 +56,10 @@
 #if (UIP_CONF_UDP_CONNS < 3)
  #error At least three UDP connections must be configured!
 #endif
+
+
+#define ETHBUF ((struct uip_eth_hdr *)&uip_buf[0])
+#define BUF ((struct uip_tcpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 /*
  * Declaration of the protosocket function that handles the connection
@@ -98,7 +105,10 @@ extern int16_t GainCH_B;
 
 extern struct dhcpc_state s;
 
+extern int32_t SampleRate;
+
 uint8_t ReverseEndian=1;					// if 1, the UDP sample data endian will be reversed
+uint8_t netiqdump=0;
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -176,8 +186,8 @@ extern nvram_data_t flash_nvram_data;
 
 uint16_t NetDataPackets = NETDATAPACKETS16;
 uint16_t NetPktLen = NETPKTLEN16;
-extern uint16_t NetDataLen;					//= NETDATALEN16;					// indicates, how much data in network mode SSC will fetch us for one buffer
-extern uint16_t NetDataLenHalfwords;		//= NETDATALEN16/2;
+uint16_t NetDataLen = NETDATALEN16;					// indicates, how much data in network mode SSC will fetch us for one buffer
+uint16_t NetDataLenHalfwords = NETDATALEN16/2;		// indicates, how much data in network mode SSC will fetch us for one buffer (used because we need it inside IRQ and do not have to divide by two each time)
 
 void dhcpc_configured(const struct dhcpc_state *s)
 {
@@ -253,10 +263,10 @@ as they will not be overwritten, but for a sake of clarity it is brought here
 void PatchNetSDRPktlen(uint16_t packetlen)
 {
 	uipbuffA[UIP_IPUDPH_LEN + UIP_LLH_LEN]=((2+2+packetlen)&0xFF);						//8-bit LSB of total length
-	uipbuffA[UIP_IPUDPH_LEN + UIP_LLH_LEN+1]=(0x4<<5)|(((2+2+packetlen)&0x1F0)>>8);
+	uipbuffA[UIP_IPUDPH_LEN + UIP_LLH_LEN+1]=(0x4<<5)|(((2+2+packetlen)&0x1FFF)>>8);
 
 	uipbuffB[UIP_IPUDPH_LEN + UIP_LLH_LEN]=((2+2+packetlen)&0xFF);						//8-bit LSB of total length
-	uipbuffB[UIP_IPUDPH_LEN + UIP_LLH_LEN+1]=(0x4<<5)|(((2+2+packetlen)&0x1F0)>>8);
+	uipbuffB[UIP_IPUDPH_LEN + UIP_LLH_LEN+1]=(0x4<<5)|(((2+2+packetlen)&0x1FFF)>>8);
 }
 
 /*
@@ -343,9 +353,10 @@ This is our regular working routine what is called inside main loop of the SDR_M
 
 void NetSDR_Task(void)
 {
-uint16_t i, j;
+uint16_t i, j, k;
 uint16_t *uip_buf_short;
-//uint8_t *uipbuff;
+uint8_t *uip_buf_byte;
+
 //uint8_t a, b;
 /*
 unsigned long a, b;
@@ -371,25 +382,56 @@ unsigned long d;
 
 		// short pointer is needed for endian swapping only
 		if (ReverseEndian)
-			uip_buf_short=(void*)&uip_buf[UIP_IPUDPH_LEN+UIP_LLH_LEN+4];
-
-		/*
-		uipbuff=(void*)&uip_buf[UIP_IPUDPH_LEN+UIP_LLH_LEN+4];
-		UIP_LOG("{");
-		for (i=0; i<8; i++)
 		{
-			UIP_LOG("%02X", uipbuff[i]);
+			uip_buf_short=(void*)&uip_buf[UIP_IPUDPH_LEN+UIP_LLH_LEN+4];		// used for 16-bit byteswap
+			uip_buf_byte=(void*)&uip_buf[UIP_IPUDPH_LEN+UIP_LLH_LEN+4];			// used for 24-bit byteswap
 		}
-		UIP_LOG("}\r\n");
-		*/
+
+		// if someone has requested IQ bytes dump, output 60x4 words from buffer top
+		if (netiqdump)
+		{
+		uint8_t *uipbuff;
+			uipbuff=(void*)&uip_buf[UIP_IPUDPH_LEN+UIP_LLH_LEN+4];
+
+			for (i=0; i<60; i++)
+			{
+				Message(1, "{");
+				for (j=0; j<4; j++)		// four I/Q words
+				{
+					for (k=0; k<(BitDepth/8); k++)
+						Message(1, "%02X", uipbuff[(((i*4)+j)*(BitDepth/8))+k]);
+					Message(1, "/");
+				}
+				Message(1, "}\r\n");
+			}
+
+			netiqdump=0;
+		}
 
 		for (i=0, j=0; i<NetDataPackets; i++)
 		{
 			// On first pass swap as much endians as needed for first packet, otherwise swap the reminder
 			if (ReverseEndian)
 			{
-				for (; j<(((i+1)*NetPktLen)/2); j++)
-					uip_buf_short[j]=__builtin_bswap_16(uip_buf_short[j]);
+				if (BitDepth == _16BIT)
+				{
+					for (; j<(((i+1)*NetPktLen)/2); j++)
+						uip_buf_short[j]=__builtin_bswap_16(uip_buf_short[j]);
+				}
+#ifdef USE_24BITNET
+				else  //24-bit data
+				{
+					// LM97593 sends data in CCAABB form, so we have to reverse only last two bytes to get the "lsb first" format
+					for (; j<(((i+1)*NetPktLen)); j+=3)
+					{
+					uint8_t b;
+
+						b=uip_buf_byte[j];
+						uip_buf_byte[j]=uip_buf_byte[j+2];
+						uip_buf_byte[j+2]=b;						
+					}
+				}
+#endif
 			}
 
 			uip_buf[UIP_IPUDPH_LEN + UIP_LLH_LEN+2]=netsdrpktseq&0xFF;
@@ -398,7 +440,7 @@ unsigned long d;
 			if (!++netsdrpktseq)					// only the first/trigger packet is supposed to have seq# 0
 				netsdrpktseq++;
 
-			uip_slen=2+2+NetPktLen;				// have to patch this in manually, since uip_send() will also try to recopy data if udp_send() is used
+			uip_slen=2+2+NetPktLen;					// have to patch this in manually, since uip_send() will also try to recopy data if udp_send() is used
 			uip_udp_conn=udp_conn;					// give uIP our locally initialized UDP socket
 			uip_process(UIP_UDP_SEND_CONN);			// processes all the header stuff and checksum, but does not transmit jet
 
@@ -407,13 +449,40 @@ unsigned long d;
 
 			ksz8851BeginPacketSend(uip_len);
 			ksz8851SendPacketData((uint8_t *)uip_buf, 54+2+2);
-			ksz8851SendPacketDataNonBlocking((uint8_t *)uip_appdata+2+2+(i*NetPktLen), uip_len-UIP_LLH_LEN-40-2-2);
+			ksz8851SendPacketDataNonBlocking((uint8_t *)uip_appdata+2+2+(i*NetPktLen), uip_len-UIP_LLH_LEN-40-2-2);		// note the use of non-blocking function here!
 
-			//Now, while the packet sends itself, go swap as much endians as we can
+			//While the packet sends itself, go swap as much endians as we can meanwhile
 			if (ReverseEndian)
 			{
-				for(; (j<NetDataLenHalfwords)&&(!spi_tx_completed()); j++)
-					uip_buf_short[j]=__builtin_bswap_16(uip_buf_short[j]);
+				if (BitDepth == _16BIT)
+				{
+					for(; (j<NetDataLenHalfwords)&&(!spi_tx_completed()); j++)
+						uip_buf_short[j]=__builtin_bswap_16(uip_buf_short[j]);
+				}
+#if USE_24BITNET
+				else
+				{
+					// LM97593 sends data in CCAABB form, so we have to reverse only last two bytes to get the "lsb first" format
+					for(; (j<NetDataLen)&&(!spi_tx_completed()); j+=3)
+					{
+					uint8_t b;
+
+						b=uip_buf_byte[j];
+						uip_buf_byte[j]=uip_buf_byte[j+2];
+						uip_buf_byte[j+2]=b;
+					}
+				}
+#endif
+			}
+
+			while (!spi_tx_completed())		// since non-blocking version is used, have to wait for completion before allowing new transfers, so in case endian swapping is finished already, we shall double-wait here just in case
+			{
+				/*
+				if (!ReverseEndian)
+				{
+					//could actually do something useful here, like USBTask() or something, but no need at the moment.
+				}
+				*/
 			}
 
 			ksz8851EndPacketSend();
@@ -549,7 +618,11 @@ unsigned char sdripaddr[4];
 			dresp.key[0]=0x5A;								//unsigned char key[2];		//fixed key key[0]==0x5A key[1]==0xA5
 			dresp.key[1]=0xA5;
 			dresp.op=1;										//unsigned char op;			//0==Request(to device) 1==Response(from device) 2 ==Set(to device)
+#ifdef NAMETEST
+			sprintf(dresp.name, "");						// max 15bytes + /0
+#else
 			sprintf(dresp.name, "SDR MK1.5");				// max 15bytes + /0
+#endif
 			memmove(dresp.sn, SDRSerial, 9);				// max 15bytes + /0
 			uip_gethostaddr(&sdripaddr);
 			sprintf((char*)dresp.ipaddr, "%c%c%c%c", sdripaddr[3], sdripaddr[2], sdripaddr[1], sdripaddr[0]);	// max 15bytes + /0		// 170,100,168,192  //strange, but out of 15 fields only 4 are used!
@@ -597,6 +670,8 @@ void NetSDR_appcall(void)
 	if (uip_connected())
 	{
 		UIP_LOG("Connected!\r\n");
+		UIP_LOG("(destport(lport)=%d, srcport(rport)=%d, ripaddr=%d.%d.%d.%d)\r\n", BUF->destport, BUF->srcport,
+															uip_ipaddr1(BUF->srcipaddr), uip_ipaddr2(BUF->srcipaddr), uip_ipaddr3(BUF->srcipaddr), uip_ipaddr4(BUF->srcipaddr));
 
 		// we do not do anything here when the connection has just been established, although at the presence of the daughtercard
 		// what have LED-s present it would make sense to light one of those up.
@@ -747,12 +822,15 @@ static uint16_t SampleRateSet=0;
 	{
 		//*** General control items
 		case 1:		//Returns an ASCII string describing the Target device.
+#ifdef NAMETEST
 			memmove(netretdata+netretlen, "\xB\0\1\0", 4);
-			//sprintf(netretdata+netretlen+4, "NetSDR");
-			//netretlen+=4+7;		// including terminating 0
+			sprintf(netretdata+netretlen+4, "");
+			netretlen+=4+7;		// including terminating 0
+#else
 			memmove(netretdata+netretlen, "\x17\0\1\0", 4);
 			sprintf(netretdata+netretlen+4, "SDR MK1.5 'Andrus'");
 			netretlen+=4+19;		// including terminating 0
+#endif
 			break;
 
 		case 2:		//Contains an ASCII string containing the Target device serial number.
@@ -828,13 +906,19 @@ static uint16_t SampleRateSet=0;
 			break;
 
 		case 0xA:	//Returns information on installed options for the SDR.
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		case 0xB:	//Returns 32 bit Security code based on 32 bit security key.
 					//4-byte payload with 32-bit BCD security key
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		case 0xC:	//Set or Request the current FPGA Configuration
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		//*** Receiver control items
@@ -842,13 +926,13 @@ static uint16_t SampleRateSet=0;
 					//4-byte payload, see documentation
 			if (payload[1] == 1)		// stop command
 			{
-				// program multiplexer
-				regval=ReadRegister(6);
-				regval|=(1<<4);			// set MUX_MODE to 1, so both channels data is transmitted
-				WriteRegister(6, regval, 0);
-				InitIQDataEngine(_2X16BIT_IQ);			// configure SSC engine to fetch 4 words since both channel data is delivered during single frame sync. Force 16-bit here
+				/// program multiplexer
+				///regval=ReadRegister(6);
+				///regval|=(1<<4);			// set MUX_MODE to 1, so both channels data is transmitted
+				///WriteRegister(6, regval, 0);
+				//InitIQDataEngine(_2X16BIT_IQ);			// configure SSC engine to fetch 4 words since both channel data is delivered during single frame sync. Force 16-bit here
 				// Note, that SampleMode() recalculates our ADC master clock to have the clocks dividing without jitter.
-				//SampleMode(48000, DUAL_CHANNEL, _16BIT);		// go with 16 bits for here and now (also recalculates LO frequencys)
+				SampleMode(48000, DUAL_CHANNEL, _16BIT, DATA_AUDIO);		// go with 16 bits for here and now (also recalculates LO frequencys)
 				datamode=DATA_AUDIO;	// return whole radio to default mode
 				memmove(netretdata+netretlen, "\x8\0\x18\0", 4);
 				memmove(netretdata+netretlen+4, "\x80\x1\0\0", 4);
@@ -886,25 +970,50 @@ static uint16_t SampleRateSet=0;
 					uip_ipaddr_copy(&lastconnected, uip_conn->ripaddr);
 				}
 
-				// program multiplexer
-				regval=ReadRegister(6);
-				regval&=~(1<<4);			// set MUX_MODE to 0, so only single channel data is transmitted
-				WriteRegister(6, regval, 0);
-				InitIQDataEngine(_1X16BIT_IQ);				// configure SSC engine to fetch 2 words since only single channel data is delivered during frame sync. Force 16-bit here
-				if (!SampleRateSet)
-					SampleMode(196078, SINGLE_CHANNEL, _16BIT);		// go with 16 bits for here and now (also recalculates LO frequencys)
+				/// program multiplexer
+				/// taken care at Init_LM97593() now regval=ReadRegister(6);
+				///regval&=~(1<<4);			// set MUX_MODE to 0, so only single channel data is transmitted
+				///WriteRegister(6, regval, 0);
+#ifdef USE_24BITNET
+				if (payload[2] & 0x80)	// 24-bit data requested?
+				{
+					if (!SampleRateSet)
+						SampleMode(196078, SINGLE_CHANNEL, _24BIT, DATA_NETWORK);		// Patch for cutesdr non-se version. Go with 24 bits for here and now (also recalculates LO frequencys)
+					else
+						SampleMode(SampleRate, SINGLE_CHANNEL, _24BIT, DATA_NETWORK);	// sets everything, including NetPktLen etc. globals!
 
-				datamode=DATA_NETWORK;		// set radio to network mode
-				memmove(netretdata+netretlen, "\x8\0\x18\0", 4);
-				memmove(netretdata+netretlen+4, "\x80\x2\0\0", 4);
+					PatchNetSDRPktlen(NetPktLen);
+					netsdrpktseq=0;
+
+					datamode=DATA_NETWORK;		// set radio to network mode
+					memmove(netretdata+netretlen, "\x8\0\x18\0", 4);
+					memmove(netretdata+netretlen+4, "\x80\x2\0x80\0", 4);
+				}
+				else
+#endif
+				{
+					if (!SampleRateSet)
+						SampleMode(196078, SINGLE_CHANNEL, _16BIT, DATA_NETWORK);		// Patch for cutesdr non-se version. Go with 16 bits for here and now (also recalculates LO frequencys)
+					else
+						SampleMode(SampleRate, SINGLE_CHANNEL, _16BIT, DATA_NETWORK);	// sets everything, including NetPktLen etc. globals!
+
+					PatchNetSDRPktlen(NetPktLen);
+					netsdrpktseq=0;
+
+					datamode=DATA_NETWORK;		// set radio to network mode
+					memmove(netretdata+netretlen, "\x8\0\x18\0", 4);
+					memmove(netretdata+netretlen+4, "\x80\x2\0\0", 4);
+				}
+
 				netretlen+=4+4;
 			}
-
 			// do not update netretlen if invalid command number was given!
 			break;
 
 		case 0x19:	//Sets up the various multi-channel modes.
 					//1-byte payload, see documentation
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		case 0x20:	//Controls the SDR NCO center frequency.
@@ -966,10 +1075,14 @@ static uint16_t SampleRateSet=0;
 
 		case 0x22:	//Controls the SDR NCO phase offset when dual channels are used.
 					//5-byte payload, see documentation
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		case 0x23:	//Controls the SDR A/D Scaling value when dual channels are used.
 					//3-byte payload, see documentation
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		case 0x38:	//Controls the Level of RF gain( or attenuation) of the receiver.
@@ -1035,6 +1148,8 @@ static uint16_t SampleRateSet=0;
 			break;
 
 		case 0x40:	//UNDOCUMENTED. According to cutesdr source code, this is "RX_IF_GAIN"
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		case 0x44:	//Controls the Analog RF Filter selection.
@@ -1060,7 +1175,7 @@ static uint16_t SampleRateSet=0;
 			nw_samplerate=payload[1]|(payload[2]<<8)|(payload[3]<<16)|(payload[4]<<24);
 
 			// Note, that SampleMode() recalculates our ADC master clock to have the clocks dividing without jitter.
-			SampleMode(nw_samplerate, SINGLE_CHANNEL, _16BIT);	// go with 16 bits for here and now (also recalculates LO frequencys)
+			SampleMode(nw_samplerate, SINGLE_CHANNEL, _16BIT, 0);	// go with 16 bits for here and now (also recalculates LO frequencys)
 
 			memmove(netretdata+netretlen, "\x9\0\xB8\0", 4);
 			memmove(netretdata+netretlen+4, payload, 5);
@@ -1086,11 +1201,15 @@ static uint16_t SampleRateSet=0;
 
 		case 0xD0:	//Sets the DC offset value to be used by the A/D Converter.
 					//3-byte payload
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		//*** Misc control items
 		case 0xB6:	//Controls various Hardware Pulse output modes.(requires Hardware Option)
 					//2-byte payload
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		case 0xC4:	//Sets the UDP data packet size for the SDR.
@@ -1121,18 +1240,26 @@ static uint16_t SampleRateSet=0;
 
 		case 0xC5:	//Sets the UDP IP address and Port number for the SDR data output.
 					//6-byte payload
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		case 0x150:	//Specifies CW power on startup message for SDR.
 					//12-byte payload
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		case 0x200:	//Specifies and opens the SDR RS232 Serial port.
 					//10-byte payload
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 
 		case 0x201:	//Specifies and closes the SDR RS232 Serial port.
 					//1-byte payload
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
 			break;
 	}
 }

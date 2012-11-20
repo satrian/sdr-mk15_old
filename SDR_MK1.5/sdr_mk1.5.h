@@ -72,7 +72,7 @@
 						-	DHCP works!
 						-	Added unique serial number generation from CPU ID
 						-	Endian swapping for UDP packets moved to background of SPI DMA transfer (ksz8851 has now non-blocking DMA packet transfer capability)
-	V1.85	11.11.2012	-	Reworked SSC transfer engine to always use byte transfers (to simplify transitions between 16 and 24-bit modes for ntwork)
+	V1.85	11.11.2012	-	Reworked SSC transfer engine to always use byte transfers (to simplify transitions between 16 and 24-bit modes for network)
 						-	24-bit mode is temporarily deprecated for audio and libusb modes (to be supported by network mode first)
 						-	Added dynamic CDCE913 frequency calculation for SetADCClock() (were using pre-defined values and fixed tables before)
 						-	Added command 'clock' to display current settings for CDCE913 chip
@@ -83,12 +83,17 @@
 	V1.87	13.11.2012	-	Implemented netsdr control message 0xC4 and added MK1.5 specific data mode 0x80 (large packet, big endian mode)
 	v1.88	14.11.2012	-	Implemented RF gain control message 0x38 for NetSDR protocol
 						-	Shell commands gain control logic revisited
+	v1.89	18.11.2012	-	Fixed a bug where non-blocking network transfers did not wait for completion and sometimes were colliding with next packet
+						-	added terminal command 'netiqdump'
+						-	Unhandled NetSDR control messages are now NAK-ed
+	v1.90	20.11.2012	-	Fixed NetSDR data packet header bug (packet length was patched in wrong)
+						!	NetSDR protocol 24-bit data works, but is turned off to save bandwidth (was not really giving much advantage!)
 
 */
 
-#define	VERINFO		"v1.88"
+#define	VERINFO		"v1.90"
 #define VER_MAJOR	1
-#define VER_MINOR	88
+#define VER_MINOR	90
 
 /*
  To Do:
@@ -103,7 +108,7 @@
 		* Diversity mode for libusb mode
 		- Clean up source for publishing
 		* separate ch a and ch b gain software gain control and add 'exp' command for forcing max gain through exponent
-		? Figure out, why there is an intermodulation in 10kHz+ sinewawe
+		? Figure out, why (or if) there is an intermodulation in 10kHz+ sinewawe
 		x Implement sample rate feedback
 		x Implement audio data capture and control through CDC device (SDR-IQ and ExtIO DLL compatible)
 		- Finish SDR-IQ compatible prtocol (or deprecate officially?)
@@ -111,8 +116,8 @@
 		* DHCP
 		* NetSDR UDP broadcast discovery of radio
 		- Connection dropping/cleanup if host is gone
-		! Init_SSC() gets wrong frame length somewhere (garbage, actually!) during the init. This is likely because memory is overwritten somewhere,
-		  but has to be tracked down!!
+		? Init_SSC() gets wrong frame length somewhere (garbage, actually!) during the init. This is likely because memory is overwritten somewhere,
+		  but has to be tracked down (EDIT: This part of the code was replaced and it seems that thee are no more problems, but no bug was found either!)
 		* When first started, cutesdr selects frequency which is slightly off
 		x SDR-IQ and SDR-14 sample frequency setup (works now, because all sample rates are dynamically calculated now)
 		- MK1.5 specific udp packet mode (8k and reverse endian)
@@ -125,6 +130,9 @@
 		  Works as a workaround for time being, but has to be reworked.
 		- IPv6 support (far in the future ..)
 		- NetSDR small and MK1.5 XLarge packet length support
+		- Radio ID and random session token (generated from rx I/Q signal) based based Network configuration through UDP broadcast message
+		! F_ADC/2 SSC data rate is not working, even if clock is below 58MHz
+		- Fix help
  */
 
 /** \file
@@ -171,9 +179,9 @@ void Message(int16_t cdc, char* outstring, ...);
 void delayms(uint16_t delms);
 void delayMicroseconds(uint32_t delus);
 
-void SampleMode(uint32_t samplefreq, uint16_t channels, uint16_t numbits);
+void SampleMode(uint32_t samplefreq, uint16_t channels, uint16_t numbits, uint16_t ifcmode);
 
-void InitIQDataEngine(uint16_t bytsperframe);
+void InitIQDataEngine(uint16_t bytesperframe, uint16_t ifcmode);
 void Init_SSC(uint16_t bytespeframe, int enablerx);
 
 #define		DATA_AUDIO				1

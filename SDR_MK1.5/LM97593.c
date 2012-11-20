@@ -5,6 +5,7 @@
  *
  */
 
+#include "sdr_mk1.5.h"
 #include "LM97593.h"
 #include "gpio.h"
 #include "clock-arch.h"		// gives definition for millis()
@@ -418,7 +419,7 @@ uint8_t expfixed=0;
 			WriteRegister(20, ReadRegister(20)|1, 1);		// force exponent
 		}
 	}
-	
+
 	if (channel == CH_A)
 		GainCH_A=_gain;
 	else if (channel == CH_B)
@@ -477,13 +478,13 @@ uint16_t i;
 	}
 }
 
-void Init_LM97593(uint32_t sdr_sample_freq, uint16_t bits_per_word, bool freqandphase, uint32_t adcfreq)
+void Init_LM97593(uint32_t sdr_sample_freq, uint16_t bits_per_word, uint16_t channelmode, bool freqandphase, uint32_t adcfreq)
 {
 uint32_t decvalue=0L;
 uint32_t divider;
 int16_t j;
 uint8_t i;
-int16_t F2decFactor=2;		// Can be only 2 or 4. NB! === Leave it to 2 ===. If changed to 4, F_ADC calculating algorithm at 
+int16_t F2decFactor=2;		// Can be only 2 or 4. NB! === Leave it to 2 ===. If changed to 4, F_ADC calculating algorithm at
 							// SampleMode() has to be reworked to find a F_ADC rate what would divide with samplerate*8, or otherwise phase artifacts will appear
 							// because of sample rate mismatch
 uint64_t cicgain;
@@ -554,13 +555,13 @@ uint64_t cicgain;
 
 	reg.serial_ctrl_dummy=0;		// this is used as a placeholder in the register table
 
-	if (bits_per_word == 16)
+	if (bits_per_word == _16BIT)
 		reg.serial_ctrl=0x71;
 	else	//24-bit
 		reg.serial_ctrl=0xB1;	// xxxxxxxx		// 0x71=Serial output, round parallel and serial to 16-bit, 0xB1=Serial, round to 24-bit
 								// ||||||||
 								// |||||||+- (1)Enable serial signals								SOUT_EN Enables the serial output pins AOUT, BOUT, SCK and SFS 0=tristate, 1=enabled
-								// ||||||+-- (0)data changes on SCK rising edge						SCK_POL Determines polarity of the SCK output. 0=AOUT,BOUT,SFS change on the rising edge of SCK, 1=on th efalling edge
+								// ||||||+-- (0)data changes on SCK rising edge						SCK_POL Determines polarity of the SCK output. 0=AOUT,BOUT,SFS change on the rising edge of SCK, 1=on the falling edge
 								// |||||+--- (0)SFS is active high									SFS_POL Determines the polarity of SFS output 0=active high, 1=active low
 								// ||||+---- (0)RDY is active high (not used)						RDY_POL Determines the polarity of RDY output 0=active high, 1=active low
 								// |||+----- (1)AOUT outputs both channels							MUX_MODE Determines the mode of the serial output pins. 0=each channel is output on its respective pin, 1=both channels multiplexed on AOUT
@@ -570,7 +571,9 @@ uint64_t cicgain;
 								//						1=round serial and parallel to 16 bits, all others set to 0
 								//						2=round serial and parallel to 24 bits, all others set to 0
 								//						3=output floating point. 8-bit mantissa, 4-bit exponent. All other bits are set to 0
-
+								
+	if (channelmode == SINGLE_CHANNEL)
+		reg.serial_ctrl&=~0x10;	// set to single-channel mode
 
 if (freqandphase)
 {
@@ -686,7 +689,7 @@ if (freqandphase)
 }
 
 
-int16_t UpdateRegisters(void)
+int16_t UpdateRegisters(uint16_t touchsi)
 {
 
 int16_t i, j, k;
@@ -711,7 +714,8 @@ char* regpool;
 		}
 	}
 
-	AssertSI();
+	if (touchsi)
+		AssertSI();
 
 	return(0);
 }

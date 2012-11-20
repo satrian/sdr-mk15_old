@@ -232,8 +232,14 @@ extern struct dhcpc_state s;	// used for debug logging only
 
 unsigned char SDRSerial[9];		// SDR Unique serial number
 
-uint16_t NetDataLen = NETDATALEN16;						// indicates, how much data in network mode SSC will fetch us for one buffer
-uint16_t NetDataLenHalfwords = NETDATALEN16/2;			// indicates, how much data in network mode SSC will fetch us for one buffer (used because we need it inside IRQ and do not have to divide by two each time)
+extern uint8_t netiqdump;		// if set to 1, NetSDR_Task() will print out head of the IQ data buffer
+
+extern uint16_t NetDataPackets;
+extern uint16_t NetPktLen;
+extern uint16_t NetDataLen;					// indicates, how much data in network mode SSC will fetch us for one buffer
+extern uint16_t NetDataLenHalfwords;		// indicates, how much data in network mode SSC will fetch us for one buffer (used because we need it inside IRQ and do not have to divide by two each time)
+
+extern uint8_t ReverseEndian;				// indicates if IQ data endian has to be swaooed at NetSDR_Task()
 
 uint16_t BitDepth = AUDIOBITS;							// 16 or 24, dependent on configuration, but start with 16-bit to be compatible with audio
 
@@ -522,9 +528,14 @@ int16_t SetupHardware(void)
 
 	pcl_configure_clocks(&pcl_freq_param);
 
+	/*
 	while (!(AVR32_PM.poscsr & AVR32_PM_CKRDY_MASK)) {};			// wait for access
 	AVR32_PM.cksel&=~(AVR32_PM_PBADIV_MASK|AVR32_PM_PBASEL_MASK);	// we may be overclocking the CPU to 66MHz and have to override PBA divisor therefore, as its not clear
 																	// what ASF will set the divisor if the frequency exceeds maximum defined by AVR32_PM_PBA_MAX_FREQ (=60MHz)
+	*/
+	
+	//pm_cksel(&AVR32_PM, 0, 0, 0, 0, 0, 0	);	// all clocks undivided
+																					
 	pcl_configure_usb_clock();
 
 	// Initialize interrupt subsystem
@@ -741,7 +752,7 @@ uint32_t setsync=0, syncerr=0;
 // These DMA buffers are used to transmit data through UDP. Since we need to do a DMA from SSC directly to this buffer and we need two of them,
 // we will create auxiliary uip_sdata
 
-// have to align netdmabuffs 4, since we use some uint32 mathematis on them later to speed up byte swapping
+// have to align netdmabuffs 4, since we use some uint32 mathematics on them later to speed up byte swapping (well, actually we do not today ...)
 volatile uint8_t uipbuffA[UIP_IPUDPH_LEN + UIP_LLH_LEN + 2 + 2 + NETMAXDATA] __attribute__((aligned(0x4)));			// ethernet headers + 2-byte netsdr data packet header + 2-byte sequence number + 6084-byte data
 volatile uint8_t uipbuffB[UIP_IPUDPH_LEN + UIP_LLH_LEN + 2 + 2 + NETMAXDATA] __attribute__((aligned(0x4)));			// ethernet headers + 2-byte netsdr data packet header + 2-byte sequence number + 6084-byte data
 
@@ -896,7 +907,7 @@ void Init_SSC(uint16_t bytesperframe, int enablerx)
     ssc->cr = AVR32_SSC_CR_SWRST_MASK;
 	cpu_delay_us(100, F_CPU);
 
-	ssc->cmr = AVR32_SSC_CMR_DIV_NOT_ACTIVE			<< AVR32_SSC_CMR_DIV_OFFSET;				// Maximum SSC bitrate is CLK_SSC/2, so use undivided clock. This, combined with overclocking the CPU to 65MHz, gives us RX on F_ADC/2 rate from DRC chip
+	ssc->cmr = AVR32_SSC_CMR_DIV_NOT_ACTIVE			<< AVR32_SSC_CMR_DIV_OFFSET;				// Maximum SSC bitrate is CLK_SSC/2, so use undivided clock. Gives us RX on F_ADC/2 rate from DRC chip
     ssc->tcmr = 0;		// no TX setup
     ssc->tfmr = 0;		// no TX setup
 
@@ -908,14 +919,13 @@ void Init_SSC(uint16_t bytesperframe, int enablerx)
 				(AVR32_SSC_RCMR_CKO_INPUT_ONLY		<< AVR32_SSC_RCMR_CKO_OFFSET)			|	// clock is input-only
 				(0									<< AVR32_SSC_RCMR_CKI_OFFSET)			|	// FS and data is shifted out on clock rising edge and sampled on falling edge
 				(AVR32_SSC_RCMR_CKG_NONE			<< AVR32_SSC_RCMR_CKG_OFFSET)			|	// we do not generate RX clock ourselves, so do not care
-				(3/*4*/								<< AVR32_SSC_RCMR_START_OFFSET)			|	// start receiving frame on the high level /*falling edge*/ of the SFS signal (both, high level (3) and falling edge (4) seem to be ending up with correct timing)
+				(/*3*/4								<< AVR32_SSC_RCMR_START_OFFSET)			|	// start receiving frame on the  /*5=rising edge*/ /*3=high level*/ /*4=falling edge*/ /*2=low level*/ of the SFS signal (both, high level (3) and falling edge (4) seem to be ending up with correct timing)
 				(0									<< AVR32_SSC_RCMR_STTDLY_OFFSET)		|	// no receive start delay
 				(0									<< AVR32_SSC_RCMR_PERIOD_OFFSET));			// do not generate FS signals
 
-	// note, that DATNB has to be reconfigured if only single channel data is outputed by LM97593
 	ssc->rfmr =(((8 - 1)							<< AVR32_SSC_RFMR_DATLEN_OFFSET)        |	// word length in bits for each symbol to clock in.
                 (1                                  << AVR32_SSC_RFMR_MSBF_OFFSET)          |	// most significant bit first
-                ((bytesperframe - 1)				<< AVR32_SSC_RFMR_DATNB_OFFSET)         |	// number of symbols to clock in after FS activates the transfer. We clock IA, QA, IB and QB after each FS
+                ((bytesperframe - 1)				<< AVR32_SSC_RFMR_DATNB_OFFSET)         |	// number of symbols to clock in after FS activates the transfer. Could be just IA and QA or IA QA IB QB depending on mode. Also, depending on 16 or 24-bit mode, the frame lenght differs.
                 ((1 - 1)							<< AVR32_SSC_RFMR_FSLEN_OFFSET)			|	// FS is 1 SCK cycle
                 (AVR32_SSC_RFMR_FSOS_INPUT_ONLY     << AVR32_SSC_RFMR_FSOS_OFFSET)          |	// RX only, so no FS outputting
                 (0                                  << AVR32_SSC_RFMR_FSEDGE_OFFSET));			// SR.RXSYN interrupt on FS rising edge (0)
@@ -959,22 +969,64 @@ int i, j;
 // Important piece of code. This will guarantee, that we are having I/Q alignment sync between radio chip and PDCA buffers.
 // Note, that one has to reset SSC interface completely, otherwise all weirdness breaks loose ...
 
-void InitIQDataEngine(uint16_t bytesperframe)
+void InitIQDataEngine(uint16_t bytesperframe, uint16_t _ifcmode)
 {
+uint16_t ifcmode;
+
+	if (_ifcmode)
+		ifcmode=_ifcmode;
+	else
+		ifcmode=datamode;		// assume current mode, if not specifically set!
+		
 	// disable interrupt and let the pdca controller run to the end
 	pdca_disable_interrupt_reload_counter_zero(PDCA_CHANNEL_0);
 	while(!(pdca_channel->isr&AVR32_PDCA_TRC_MASK))					// may be needed, may be not ..
 		{}
 
 	pdca_disable(PDCA_CHANNEL_0);
+
+	// PDCA options will be reloaded at ISR() anyway, but just to make a reasonable code,
+	// we will initialize here as well.
+	if (ifcmode == DATA_NETWORK)
+	{
+		if (BitDepth == _16BIT)
+		{
+			NetDataLen=NETDATALEN16;
+			NetPktLen=NETPKTLEN16;
+			NetDataPackets=NETDATAPACKETS16;
+			NetDataLenHalfwords=NETDATALEN16/2;			// used at endian swapping
+		}
+		else
+		{
+			NetDataLen=NETDATALEN24;
+			NetPktLen=NETPKTLEN24;
+			NetDataPackets=NETDATAPACKETS24;
+			//NetDataLenHalfwords=NETDATALEN24/2;			// used at endian swapping for 16-bit mode only!
+		}
+		
+		PDCA_OPTIONS.addr = (unsigned long)netdmabuffA;						// memory address
+		PDCA_OPTIONS.r_addr = (unsigned long)netdmabuffA;					// next memory address (use the same, so we do have a ring buffer)
+		PDCA_OPTIONS.size = NetDataLen;										// transfer counter
+		PDCA_OPTIONS.r_size = NetDataLen;									// next transfer counter
+	}
+	else
+	{
+		PDCA_OPTIONS.addr = (void *)dmabuff_1;						// memory address
+		PDCA_OPTIONS.r_addr = (void *)dmabuff_1;					// next memory address (use the same, so we do have a ring buffer)
+		PDCA_OPTIONS.size = (DMAMASK+1)*2;							// transfer counter
+		PDCA_OPTIONS.r_size = (DMAMASK+1)*2;						// next transfer counter
+	}
+
 	pdca_init_channel(PDCA_CHANNEL_0, &PDCA_OPTIONS);				// init PDCA channel with options.
 	pdca_enable_interrupt_reload_counter_zero(PDCA_CHANNEL_0);
 
 	SetSI(0);
 	Init_SSC(bytesperframe, 0);				// init, but keep disabled
+		
 	cpu_delay_us(10, F_CPU);				// SI is clocked in on a rising edge of CK, so we are probably OK, but just in case make a short delay!
-	ssc->cr=AVR32_SSC_CR_RXEN_MASK;
+	//ssc->cr=AVR32_SSC_CR_RXEN_MASK;
 	pdca_enable(PDCA_CHANNEL_0);
+	ssc->cr=AVR32_SSC_CR_RXEN_MASK;		// should not matter if this is before or after pdca enable, since SI is asserted anyway and data is not running
 	SetSI(1);
 }
 
@@ -1017,7 +1069,7 @@ Fist test shows, that 64000000/(4*231884)=69.00001725, which is close enough to 
 
 */
 
-void SampleMode(uint32_t samplefreq, uint16_t channels, uint16_t numbits)
+void SampleMode(uint32_t samplefreq, uint16_t channels, uint16_t numbits, uint16_t ifcmode)
 {
 uint32_t oldsamplefreq;
 
@@ -1043,25 +1095,14 @@ uint32_t fadc;
 
 	SetADCClock(fadc);
 
-/*
-	// disable interrupt and let the pdca controller run to the end
-	pdca_disable_interrupt_reload_counter_zero(PDCA_CHANNEL_0);
-	while(!(pdca_channel->isr&AVR32_PDCA_TRC_MASK))		// may be needed, may be not ..
-		{}
-
-	pdca_disable(PDCA_CHANNEL_0);
-*/
 	oldsamplefreq=SampleRate;
 
 	SampleRate=samplefreq;								//update globals
 	BitDepth=numbits;
-	//WordSize=numbits/8;
 
-	//IntTime=millis();									// not in use any more, as SSC SOF interrupt is deprecated
+	Init_LM97593(samplefreq, numbits, channels, false, f_adc);
 
-	Init_LM97593(samplefreq, numbits, false, f_adc);
-
-	UpdateRegisters();
+	UpdateRegisters(1);
 
 	if (oldsamplefreq != SampleRate)
 	{
@@ -1069,15 +1110,8 @@ uint32_t fadc;
 		SetFreq(CH_A, lastfreq_A, 1, f_adc);
 		SetFreq(CH_B, lastfreq_B, 1, f_adc);
 	}
-/*
-	// Initialize DMA now for transferring bytes automatically to memory
-	// ResyncSI() will update PDCA with these parameters
-	if (numbits == _16BIT)
-		PDCA_OPTIONS.transfer_size = PDCA_TRANSFER_SIZE_HALF_WORD;
-	else
-		PDCA_OPTIONS.transfer_size = PDCA_TRANSFER_SIZE_BYTE;		// for 24-bit modes we have to clock by byte
-*/
-	InitIQDataEngine((2*numbits*channels)/8);
+
+	InitIQDataEngine((2*numbits*channels)/8, ifcmode);
 }
 
 void UpdateFlashCRC(void)
@@ -1248,7 +1282,7 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 
 	if (!reginit_done)
 	{
-		Init_LM97593(SampleRate, BitDepth, true, 64000000);		// just init the register pool with default values and 64MHz ADC clock
+		Init_LM97593(SampleRate, BitDepth, DUAL_CHANNEL, true, 64000000);		// just init the register pool with default values and 64MHz ADC clock
 		// NB! Only enable SSC and associated interrupt after PDCA is initialized (interrupt will set the PDCA enable bit)
 		Init_SSC(_2X16BIT_IQ, 1);
 		reginit_done=true;
@@ -1256,7 +1290,7 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 
 	ResetRadio();			// Assert reset. May or may not be needed, but nice to do.
 
-	UpdateRegisters();		// Initialize radio registers with whatever we have for defaults
+	UpdateRegisters(1);		// Initialize radio registers with whatever we have for defaults
 
 	radio_ready=true;		// show audio interrupt that its OK to fetch data.
 
@@ -1307,9 +1341,9 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 				delayms(10);
 
 				// re-init radio chip
-				Init_LM97593(SampleRate, BitDepth, true, 64000000);		// just init the register pool with default values and 64MHz sample clock
+				Init_LM97593(SampleRate, BitDepth, DUAL_CHANNEL, true, 64000000);		// just init the register pool with default values and 64MHz sample clock
 				ResetRadio();			// Assert reset. May or may not be needed, but nice to do. (This function is deprecated actually ...)
-				UpdateRegisters();		// Initialize radio registers with whatever we have for default
+				UpdateRegisters(1);		// Initialize radio registers with whatever we have for default
 
 				continue;
 			}
@@ -1339,7 +1373,7 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 	////
 
 	//set samplemode to I/Q sync once more, just in case
-	SampleMode(48000, DUAL_CHANNEL, _16BIT);		// we are starting up in audio mode, so set sample mode appropriately. this function will also sync the PDCA buffers with SSC to get a grip on I/Q frame alignment
+	SampleMode(48000, DUAL_CHANNEL, _16BIT, 0);		// we are starting up in audio mode, so set sample mode appropriately. this function will also sync the PDCA buffers with SSC to get a grip on I/Q frame alignment
 
 	while(1)
 	{
@@ -1740,7 +1774,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 					{
 						StopRadio();
 					}
-					else if ((strcmp(cmdname, "sysinfo") == 0) || (strcmp(cmdname, "si") == 0))
+					else if (strcmp(cmdname, "sysinfo") == 0)
 					{
 						unsigned char sdripaddr[4];
 						//avgrate=SSCSFSIntCounter;
@@ -1756,6 +1790,19 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 						//Message(1, "Total time since first interrupt = %lu\r\n", ((uint32_t)millis()-(uint32_t)IntTime));
 						//Message(1, "  Calculated Average Sample Rate = %luHz\r\n", (uint32_t)avgrate);
 						//Message(1, "         Samples added to buffer = %lu\r\n", (uint32_t)samplesadded);
+					}
+					else if (strcmp(cmdname, "netiqdump") == 0)
+					{
+						Message(1, "\r\n");
+						Message(1, "BitDepth = %d\r\n", BitDepth);
+						Message(1, "NetDataLen = %d\r\n", NetDataLen);
+						Message(1, "NetPktLen = %d\r\n", NetPktLen);
+						Message(1, "NetDataPackets = %d\r\n", NetDataPackets);
+						Message(1, "ReverseEndian = %d\r\n\r\n", ReverseEndian);
+
+						Message(1, "Head of Data Buffer (Before endian swap):\r\n");
+
+						netiqdump=1;
 					}
 					else if (strcmp(cmdname, "ir") == 0)
 					{
@@ -1780,7 +1827,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 					}
 					else if (strcmp(cmdname, "defaults") == 0)
 					{
-						UpdateRegisters();
+						UpdateRegisters(1);
 					}
 					else if (strcmp(cmdname, "scancode") == 0)
 					{
@@ -2059,7 +2106,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 							samplerate=strtol(carg1, NULL, 0);
 							samplebits=strtol(carg2, NULL, 0);
 
-							SampleMode(samplerate, DUAL_CHANNEL, samplebits);		// IQ mode is single channel, but we will interleave samples ourselves to be able to fetch both channels data
+							SampleMode(samplerate, DUAL_CHANNEL, samplebits, 0);		// IQ mode is single channel, but we will interleave samples ourselves to be able to fetch both channels data
 							datamode=DATA_SDRIQ;
 						}
 						else
@@ -2075,7 +2122,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 							samplerate=strtol(carg1, NULL, 0);
 							samplebits=strtol(carg2, NULL, 0);
 
-							SampleMode(samplerate, DUAL_CHANNEL, samplebits);
+							SampleMode(samplerate, DUAL_CHANNEL, samplebits, 0);
 							Message(1, "Sample mode is now %ldHz/%dbit\r\n", samplerate, samplebits);
 						}
 						else
@@ -2999,7 +3046,7 @@ void EVENT_USB_Device_ControlRequest(void)
 							numbits = Endpoint_Read_8();
 
 							//Message(1, "LIBUSB_SAMPLEMODE: SampleRate=%ld Bits=%d\n", libusb_samplerate, numbits);
-							SampleMode(libusb_samplerate, DUAL_CHANNEL, numbits);		// libusb mode can be single- or dual channel, but we are interleaving it ourselves to be able to access both channels
+							SampleMode(libusb_samplerate, DUAL_CHANNEL, numbits, 0);		// libusb mode can be single- or dual channel, but we are interleaving it ourselves to be able to access both channels
 
 							Endpoint_ClearOUT();
 							Endpoint_ClearStatusStage();

@@ -7,6 +7,7 @@
 #define FREQ_MIN 27000000
 
 /*
+Wrong order from original header file
 union pll_conf {
 	struct {
 		unsigned vco_range: 2;

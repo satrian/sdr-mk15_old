@@ -80,8 +80,6 @@ The ENC28J60 part of uIP is currently not ported nor tested for MK1.5.
 
 #include "psock.h"
 
-#define ETHBUF ((struct uip_eth_hdr *)&uip_buf[0])
-
 /* First, we define the uip_tcp_appstate_t datatype. This is the state
    of our application, and the memory required for this state is
    allocated together with each TCP connection. One application state
@@ -130,6 +128,24 @@ typedef struct
 
 	//start of optional variable custom byte fields
 	//unsigned char Custom[N];
+	/*
+	//start of optional variable custom byte fields for NetSDR
+	unsigned char macaddr[6];	//HW mac address (little endian byte order) (read only)
+	unsigned char hwver[2];		//Hardware version*100  (little endian byte order) (read only)
+	unsigned char fwver[2];		//Firmware version*100 (little endian byte order)(read only)
+	unsigned char btver[2];		//Boot version*100 (little endian byte order) (read only)
+	unsigned char fpgaid;		//FPGA ID (read only)
+	unsigned char fpgarev;		//FPGA revision (read only)
+	unsigned char opts;			//Options (read only)
+	unsigned char mode;			//0 == Use DHCP 1==manual  2==manual Alternate data address
+	unsigned char subnet[4];	//IP subnet mask (little endian byte order)
+	unsigned char gwaddr[4];	//gateway address (little endian byte order)
+	unsigned char dataipaddr[4];// Alternate data IP address for UDP data  (little endian byte order)
+	unsigned char dataport[2];	// Alternate data Port address for UDP (little endian byte order)
+	unsigned char fpga;			//0 == default cfg   1==custom1    2==custom2
+	unsigned char status;		//bit 0 == TCP connected   Bit 1 == running  Bit 2-7 not defined
+	unsigned char future[15];	//future use
+	*/
 } DISCOVER_MSG;
 
 
@@ -147,7 +163,7 @@ void NetSDR_Task(void);
 #define NETDATALEN24		(NETPKTLEN24*NETDATAPACKETS24)
 
 #define NETDATAPACKETS16	12
-#define NETPKTLEN16			1024							
+#define NETPKTLEN16			1024
 #define NETDATALEN16		(NETPKTLEN16*NETDATAPACKETS16)		// the size of the buffer filled by SSC DMA
 
 // SDR MK1.5 native modes
@@ -157,7 +173,7 @@ void NetSDR_Task(void);
 #define NETDATALEN24XL		(NETPKTLEN24XL*NETDATAPACKETS24XL)
 
 #define NETDATAPACKETS16XL	2
-#define NETPKTLEN16XL		(5*1024)							
+#define NETPKTLEN16XL		(5*1024)
 #define NETDATALEN16XL		(NETPKTLEN16XL*NETDATAPACKETS16XL)		// the size of the buffer filled by SSC DMA
 
 #define SDR_PORT	50000

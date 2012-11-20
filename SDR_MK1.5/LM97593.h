@@ -157,8 +157,8 @@ void Int2Phase(char* phasestore, int16_t phase);
 uint64_t pow2(int16_t power);
 uint64_t powX(uint64_t numvalue, int16_t power);
 void memmove_BE(uint8_t* dest, uint8_t* src, uint16_t count);
-void Init_LM97593(uint32_t sdr_sample_freq, uint16_t bits_per_word, bool freqandphase, uint32_t adcfreq);
-int16_t UpdateRegisters(void);
+void Init_LM97593(uint32_t sdr_sample_freq, uint16_t bits_per_word, uint16_t channelmode, bool freqandphase, uint32_t adcfreq);
+int16_t UpdateRegisters(uint16_t touchsi);
 
 void StartRadio(void);
 void StopRadio(void);
