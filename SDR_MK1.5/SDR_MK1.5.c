@@ -522,7 +522,7 @@ int16_t SetupHardware(void)
 	//this is also important to do immediately for a reason, that if we do not configure it as output immediately, the
 	//RED LED will drain enough current from the pin, that it will become high and the whole board starts fetching power
 	//through protection diodes, which is not healthy.
-	gpio_clr_gpio_pin(SDRENABLE);
+	gpio_set_gpio_pin(SDRENABLE);
 
 	//pcl_switch_to_osc(PCL_OSC0, FOSC0, OSC0_STARTUP);
 
@@ -533,9 +533,9 @@ int16_t SetupHardware(void)
 	AVR32_PM.cksel&=~(AVR32_PM_PBADIV_MASK|AVR32_PM_PBASEL_MASK);	// we may be overclocking the CPU to 66MHz and have to override PBA divisor therefore, as its not clear
 																	// what ASF will set the divisor if the frequency exceeds maximum defined by AVR32_PM_PBA_MAX_FREQ (=60MHz)
 	*/
-	
+
 	//pm_cksel(&AVR32_PM, 0, 0, 0, 0, 0, 0	);	// all clocks undivided
-																					
+
 	pcl_configure_usb_clock();
 
 	// Initialize interrupt subsystem
@@ -554,8 +554,8 @@ int16_t SetupHardware(void)
 	// full power is enabled.
 	delayms(1000);
 
-	gpio_set_pin_high(SDRENABLE);		//SDRENABLE high - enable all power now
-	delayms(10);						// allow power to stabilize somewhat before programming clock synth
+	//gpio_set_pin_high(SDRENABLE);		//SDRENABLE high - enable all power now
+	//delayms(10);						// allow power to stabilize somewhat before programming clock synth
 
 	// Program the clock synth as first thing after power-up to avoid running LM97593 without clock after reset.
 	// We should be done before the LM97593 chip comes out of reset
@@ -753,11 +753,11 @@ uint32_t setsync=0, syncerr=0;
 // we will create auxiliary uip_sdata
 
 // have to align netdmabuffs 4, since we use some uint32 mathematics on them later to speed up byte swapping (well, actually we do not today ...)
-volatile uint8_t uipbuffA[UIP_IPUDPH_LEN + UIP_LLH_LEN + 2 + 2 + NETMAXDATA] __attribute__((aligned(0x4)));			// ethernet headers + 2-byte netsdr data packet header + 2-byte sequence number + 6084-byte data
-volatile uint8_t uipbuffB[UIP_IPUDPH_LEN + UIP_LLH_LEN + 2 + 2 + NETMAXDATA] __attribute__((aligned(0x4)));			// ethernet headers + 2-byte netsdr data packet header + 2-byte sequence number + 6084-byte data
+volatile uint8_t uipbuffA[UIP_LLH_LEN + UIP_IPUDPH_LEN + 2 + 2 + NETMAXDATA] __attribute__((aligned(0x4)));			// ethernet headers + 2-byte netsdr data packet header + 2-byte sequence number + 6084-byte data
+volatile uint8_t uipbuffB[UIP_LLH_LEN + UIP_IPUDPH_LEN + 2 + 2 + NETMAXDATA] __attribute__((aligned(0x4)));			// ethernet headers + 2-byte netsdr data packet header + 2-byte sequence number + 6084-byte data
 
-volatile uint8_t *netdmabuffA = &uipbuffA[UIP_IPUDPH_LEN + UIP_LLH_LEN + 2 + 2];	 // netdmabuffs become aligned, since the UDP header stuff, netsdr header and sequence are alltogether 32 bytes long
-volatile uint8_t *netdmabuffB = &uipbuffB[UIP_IPUDPH_LEN + UIP_LLH_LEN + 2 + 2];
+volatile uint8_t *netdmabuffA = &uipbuffA[UIP_LLH_LEN + UIP_IPUDPH_LEN + 2 + 2];	 // netdmabuffs become aligned, since the UDP header stuff, netsdr header and sequence are alltogether 32 bytes long
+volatile uint8_t *netdmabuffB = &uipbuffB[UIP_LLH_LEN + UIP_IPUDPH_LEN + 2 + 2];
 
 volatile int8_t nextisA=-1;
 
@@ -977,7 +977,7 @@ uint16_t ifcmode;
 		ifcmode=_ifcmode;
 	else
 		ifcmode=datamode;		// assume current mode, if not specifically set!
-		
+
 	// disable interrupt and let the pdca controller run to the end
 	pdca_disable_interrupt_reload_counter_zero(PDCA_CHANNEL_0);
 	while(!(pdca_channel->isr&AVR32_PDCA_TRC_MASK))					// may be needed, may be not ..
@@ -1003,7 +1003,7 @@ uint16_t ifcmode;
 			NetDataPackets=NETDATAPACKETS24;
 			//NetDataLenHalfwords=NETDATALEN24/2;			// used at endian swapping for 16-bit mode only!
 		}
-		
+
 		PDCA_OPTIONS.addr = (unsigned long)netdmabuffA;						// memory address
 		PDCA_OPTIONS.r_addr = (unsigned long)netdmabuffA;					// next memory address (use the same, so we do have a ring buffer)
 		PDCA_OPTIONS.size = NetDataLen;										// transfer counter
@@ -1022,7 +1022,7 @@ uint16_t ifcmode;
 
 	SetSI(0);
 	Init_SSC(bytesperframe, 0);				// init, but keep disabled
-		
+
 	cpu_delay_us(10, F_CPU);				// SI is clocked in on a rising edge of CK, so we are probably OK, but just in case make a short delay!
 	//ssc->cr=AVR32_SSC_CR_RXEN_MASK;
 	pdca_enable(PDCA_CHANNEL_0);
@@ -1302,8 +1302,11 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 
 	gpio_set_gpio_pin(LED);			// indicate that setup process is over
 
+	delayms(1000);					// allow some more stabilization before network is going to be activated (needed for old 1.03 boards)
+
 	// Initialize network
 	NetSDR_init();
+
 
 /*
 	// start tasks!

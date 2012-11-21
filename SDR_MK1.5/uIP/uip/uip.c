@@ -1182,17 +1182,17 @@ udp_input:
 		connection is bound to a remote port. Finally, if the
 		connection is bound to a remote IP address, the source IP
 		address of the packet is checked. */
-		if(	(uip_udp_conn->lport != 0) && 
-			(UDPBUF->destport == uip_udp_conn->lport) && 
+		if(	(uip_udp_conn->lport != 0) &&
+			(UDPBUF->destport == uip_udp_conn->lport) &&
 			/*((uip_udp_conn->rport == 0) || (UDPBUF->srcport == uip_udp_conn->rport)) &&*/
 			(uip_ipaddr_cmp(uip_udp_conn->ripaddr, all_zeroes_addr) || uip_ipaddr_cmp(uip_udp_conn->ripaddr, all_ones_addr) || uip_ipaddr_cmp(BUF->srcipaddr, uip_udp_conn->ripaddr)))
 		{
 			goto udp_found;
 		}
 	}
-	
+
 	UIP_LOG("udp: no matching connection found.\r\n");
-	UIP_LOG("(destport(lport)=%d, srcport(rport)=%d, ripaddr=%d.%d.%d.%d)\r\n", UDPBUF->destport, UDPBUF->srcport, 
+	UIP_LOG("(destport(lport)=%d, srcport(rport)=%d, ripaddr=%d.%d.%d.%d)\r\n", UDPBUF->destport, UDPBUF->srcport,
 															uip_ipaddr1(BUF->srcipaddr), uip_ipaddr2(BUF->srcipaddr), uip_ipaddr3(BUF->srcipaddr), uip_ipaddr4(BUF->srcipaddr));
 	goto drop;
 

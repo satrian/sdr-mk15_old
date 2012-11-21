@@ -82,8 +82,8 @@ extern volatile uint8_t ready2udp;
 extern volatile int8_t nextisA;
 uint16_t netsdrpktseq=0;
 
-extern volatile uint8_t uipbuffA[UIP_IPUDPH_LEN + UIP_LLH_LEN + 2 + 2 + NETMAXDATA];			// ethernet headers + 2-byte netsdr data packet header + 2-byte sequence number + 6084-byte data
-extern volatile uint8_t uipbuffB[UIP_IPUDPH_LEN + UIP_LLH_LEN + 2 + 2 + NETMAXDATA];			// ethernet headers + 2-byte netsdr data packet header + 2-byte sequence number + 6084-byte data
+extern volatile uint8_t uipbuffA[UIP_LLH_LEN + UIP_IPUDPH_LEN + 2 + 2 + NETMAXDATA];			// ethernet headers + 2-byte netsdr data packet header + 2-byte sequence number + 6084-byte data
+extern volatile uint8_t uipbuffB[UIP_LLH_LEN + UIP_IPUDPH_LEN + 2 + 2 + NETMAXDATA];			// ethernet headers + 2-byte netsdr data packet header + 2-byte sequence number + 6084-byte data
 
 extern volatile uint8_t *netdmabuffA;
 extern volatile uint8_t *netdmabuffB;
@@ -262,11 +262,11 @@ as they will not be overwritten, but for a sake of clarity it is brought here
 */
 void PatchNetSDRPktlen(uint16_t packetlen)
 {
-	uipbuffA[UIP_IPUDPH_LEN + UIP_LLH_LEN]=((2+2+packetlen)&0xFF);						//8-bit LSB of total length
-	uipbuffA[UIP_IPUDPH_LEN + UIP_LLH_LEN+1]=(0x4<<5)|(((2+2+packetlen)&0x1FFF)>>8);
+	uipbuffA[UIP_LLH_LEN + UIP_IPUDPH_LEN]=((2+2+packetlen)&0xFF);						//8-bit LSB of total length
+	uipbuffA[UIP_LLH_LEN + UIP_IPUDPH_LEN+1]=(0x4<<5)|(((2+2+packetlen)&0x1FFF)>>8);
 
-	uipbuffB[UIP_IPUDPH_LEN + UIP_LLH_LEN]=((2+2+packetlen)&0xFF);						//8-bit LSB of total length
-	uipbuffB[UIP_IPUDPH_LEN + UIP_LLH_LEN+1]=(0x4<<5)|(((2+2+packetlen)&0x1FFF)>>8);
+	uipbuffB[UIP_LLH_LEN + UIP_IPUDPH_LEN]=((2+2+packetlen)&0xFF);						//8-bit LSB of total length
+	uipbuffB[UIP_LLH_LEN + UIP_IPUDPH_LEN+1]=(0x4<<5)|(((2+2+packetlen)&0x1FFF)>>8);
 }
 
 /*
@@ -381,17 +381,15 @@ unsigned long d;
 		// effectively inhibits all faster data modes than 200kHz ..
 
 		// short pointer is needed for endian swapping only
-		if (ReverseEndian)
-		{
-			uip_buf_short=(void*)&uip_buf[UIP_IPUDPH_LEN+UIP_LLH_LEN+4];		// used for 16-bit byteswap
-			uip_buf_byte=(void*)&uip_buf[UIP_IPUDPH_LEN+UIP_LLH_LEN+4];			// used for 24-bit byteswap
-		}
+
+		uip_buf_short=(void*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + 4];		// used for 16-bit byteswap
+		uip_buf_byte=(void*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + 4];		// used for 24-bit byteswap
 
 		// if someone has requested IQ bytes dump, output 60x4 words from buffer top
 		if (netiqdump)
 		{
 		uint8_t *uipbuff;
-			uipbuff=(void*)&uip_buf[UIP_IPUDPH_LEN+UIP_LLH_LEN+4];
+			uipbuff=(void*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + 4];
 
 			for (i=0; i<60; i++)
 			{
@@ -434,8 +432,8 @@ unsigned long d;
 #endif
 			}
 
-			uip_buf[UIP_IPUDPH_LEN + UIP_LLH_LEN+2]=netsdrpktseq&0xFF;
-			uip_buf[UIP_IPUDPH_LEN + UIP_LLH_LEN+3]=(netsdrpktseq>>8)&0xFF;
+			uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + 2]=netsdrpktseq&0xFF;
+			uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + 3]=(netsdrpktseq>>8)&0xFF;
 
 			if (!++netsdrpktseq)					// only the first/trigger packet is supposed to have seq# 0
 				netsdrpktseq++;
@@ -448,9 +446,12 @@ unsigned long d;
 			//network_send();							// actually transmit data
 
 			ksz8851BeginPacketSend(uip_len);
-			ksz8851SendPacketData((uint8_t *)uip_buf, 54+2+2);
-			ksz8851SendPacketDataNonBlocking((uint8_t *)uip_appdata+2+2+(i*NetPktLen), uip_len-UIP_LLH_LEN-40-2-2);		// note the use of non-blocking function here!
-
+			ksz8851SendPacketData((uint8_t *)uip_buf, UIP_LLH_LEN + UIP_IPUDPH_LEN + 2 + 2);
+			ksz8851SendPacketDataNonBlocking((uint8_t*)uip_buf_byte+(i*NetPktLen), NetPktLen);		// note the use of non-blocking function here!
+			
+			//ksz8851SendPacketData((uint8_t *)uip_buf, 54+2+2);			
+			//ksz8851SendPacketDataNonBlocking((uint8_t *)uip_appdata+2+2+(i*(NetPktLen)), /*NetPktLen-2-2*/uip_len-UIP_LLH_LEN-40-2-2);		// note the use of non-blocking function here!			
+						                                                  
 			//While the packet sends itself, go swap as much endians as we can meanwhile
 			if (ReverseEndian)
 			{
@@ -1193,6 +1194,7 @@ static uint16_t SampleRateSet=0;
 			// note also, that whoever is aquiring this, expects us to respond with 80MHz ...
 			memmove(netretdata+netretlen, "\x9\0\xB0\0", 4);
 			memmove(netretdata+netretlen+4, "\0\0\xB4\xC4\x4", 5);		//80MHz
+			//memmove(netretdata+netretlen+4, "\0\0\x90\xD0\x3", 5);		//64MHz
 			netretlen+=4+5;
 			//memmove(netretdata+netretlen, "\x9\0\xB0\0", 4);
 			//memmove(netretdata+netretlen+4, payload, 5);
@@ -1222,7 +1224,7 @@ static uint16_t SampleRateSet=0;
 
 			memmove(netretdata+netretlen, "\5\0\xC4\0", 4);
 			memmove(netretdata+netretlen+4, payload, 1);
-
+			
 			switch(payload[0])
 			{
 				case 0x80:				//[MK1.5] 0x80 = Large UDP packets (1444 bytes(24bit data) or 1028 bytes(16bit data), BIG ENDIAN data
@@ -1236,6 +1238,7 @@ static uint16_t SampleRateSet=0;
 			}
 
 			netretlen+=4+1;
+
 			break;
 
 		case 0xC5:	//Sets the UDP IP address and Port number for the SDR data output.
@@ -1258,6 +1261,11 @@ static uint16_t SampleRateSet=0;
 
 		case 0x201:	//Specifies and closes the SDR RS232 Serial port.
 					//1-byte payload
+			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
+			netretlen+=2;
+			break;
+			
+		default:
 			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
 			netretlen+=2;
 			break;

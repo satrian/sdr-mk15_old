@@ -88,12 +88,13 @@
 						-	Unhandled NetSDR control messages are now NAK-ed
 	v1.90	20.11.2012	-	Fixed NetSDR data packet header bug (packet length was patched in wrong)
 						!	NetSDR protocol 24-bit data works, but is turned off to save bandwidth (was not really giving much advantage!)
+	v1.91	21.11.2012	-	Fixed ugly bug with UDP packet formation, what caused the first 20 bytes of I/Q data being incorrect
 
 */
 
-#define	VERINFO		"v1.90"
+#define	VERINFO		"v1.91"
 #define VER_MAJOR	1
-#define VER_MINOR	90
+#define VER_MINOR	91
 
 /*
  To Do:
