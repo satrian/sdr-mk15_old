@@ -145,11 +145,12 @@ extern volatile int32_t lastfreq_B;
 extern volatile bool powered;
 
 unsigned char ReadRegister(unsigned char regno);
-void WriteRegister(unsigned char regno, unsigned char regval, unsigned char toggle_si);
+void WriteRegister(unsigned char regno, unsigned char regval);
 void AssertSI(void);
 void SetSI(int state);
 uint8_t DiversityMode(uint8_t mode, uint32_t adcfreq);
 void SetFreq(int16_t channel, int32_t _freq, int16_t write, uint32_t adcfreq);
+void SetFreq_Fast(int16_t channel, int32_t _freq, int16_t write, uint32_t adcfreq);
 void SetPhase(int16_t channel, uint16_t phaseword);
 uint8_t SetGain(int16_t channel, int16_t _gain);
 int16_t GetGain(int16_t channel);

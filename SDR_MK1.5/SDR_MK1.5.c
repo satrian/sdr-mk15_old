@@ -212,6 +212,13 @@ uint16_t plen;
 
 uint8_t datamode = DATA_AUDIO;					// default to audio interface
 
+uint16_t panadapter = 0;						// will be set to LIBMODE_16ABPAN or LIBMODE_16BAPAN in case panadapter is enabled
+uint16_t panentries = 0;						// number of entries (PANENTRY) on panoramic scan table
+char* pantable = NULL;							// this will host our panoramic scan regions table (PANENTRY list)
+PANENTRY* panentry;
+
+uint16_t stepsdone = 0;
+
 volatile uint32_t SSCSFSIntCounter=0;
 volatile uint32_t IntTime=0;					// first IRQ execution time (milliseconds from start)
 
@@ -704,7 +711,7 @@ volatile uint32_t sineptra=0, sineptrb=0;
 //volatile int32_t dmabuff_1[512] __attribute__((aligned(0x10)));
 //#endif
 
-#define DMAMASK		0x7FF
+#define DMAMASK		0x1FFF	//0x7FF
 //volatile uint16_t dmabuff_1[(2*(DMAMASK+1))+2] __attribute__((aligned(0x20)));		// Align by 0x20. Makes it 0x8 aligned as well as needed by 16-bit mode, but at 16-bit single channel bulk mode we need to be
 																					// sure that we have 32 bytes ahead of us. Get int32_t*(DMAMASK+1) worth of memory, but allocate as int16_t to make the
 																					// dmabuff_1[] addressing simple for 16-bit samples for audio output (24-bit (using 32-bit width) goes bizarre tho ... )
@@ -1229,6 +1236,10 @@ bool showecho=true;
 bool createzlp=false;
 int bytessent=0;
 
+uint32_t wtcr, last_wtcr=0, worddiff;
+uint32_t panfreq;
+uint16_t stepsdone=0;
+
 uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 120-bit (15 bytes)
 
 	// always keep this as a first thing in main()
@@ -1378,6 +1389,31 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 	//set samplemode to I/Q sync once more, just in case
 	SampleMode(48000, DUAL_CHANNEL, _16BIT, 0);		// we are starting up in audio mode, so set sample mode appropriately. this function will also sync the PDCA buffers with SSC to get a grip on I/Q frame alignment
 
+	if (!pantable)
+	{
+		pantable=malloc(sizeof(PANENTRY));
+		panentry=pantable;
+
+
+		panentry->magic_I=0x55AA;
+		panentry->magic_Q=0xF0F0;
+		panentry->samples=32;
+		panentry->startfreq=0;
+		panentry->stepfreq=64000;
+		panentry->steps=500;
+		
+		panentry->samples*=4;
+
+		/*
+		panentry->magic_I=0x55AA;
+		panentry->magic_Q=0xF0F0;
+		panentry->samples=1000;
+		panentry->startfreq=4635000;
+		panentry->stepfreq=64000;
+		panentry->steps=1;
+		*/
+	}
+
 	while(1)
 	{
 		if (datamode != DATA_NETWORK)			// update variables only in non-network mode to save some time
@@ -1390,6 +1426,76 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 
 		if (datamode == DATA_LIBUSB)		// transfer data through bulk endpoint
 		{
+			// if we are in panadapter mode, go update scanner parameters according to table (datamode is DATA_LIBUSB, data is compatible with LIBMODE_16AB)
+			// (the same is theoretically applicable for network dual channel mode as well, but we are not supporting it at this moment)
+
+			if (panadapter)
+			{
+				panentry=pantable;			// just point to the first record, the rest is ignored at the moment
+
+				//if (wtcr)
+				//{
+					wtcr=((DMAMASK+1)*2)-pdca_channel->tcr;	// its a countdown register, so reverse it
+					wtcr/=2;								// convert to words
+					wtcr&=0xFFFFFFFC;						// always point to IA
+
+					if (last_wtcr < wtcr)
+						worddiff=wtcr-last_wtcr;
+					else
+						worddiff=wtcr+(DMAMASK+1)-last_wtcr;
+
+					if ((worddiff >= (panentry->samples+(2*16))) && (wtcr > 32))	// at least requested sample count + 16 words to store magic info and frequency
+					{						
+						last_wtcr=wtcr;								// reset current pointer
+
+						panfreq=panentry->startfreq;
+						panfreq+=stepsdone*panentry->stepfreq;		// new scan starting freq
+
+						stepsdone++;
+
+						if (stepsdone == panentry->steps)
+							stepsdone=0;
+
+						// Now change frequency. Note that registry write etc. takes some time, so we will have to ignore some of the data after the magic!
+
+						if (panadapter == LIBMODE_16ABPAN)
+						{
+							// key in magic in current position for chB IQ data
+							dmabuff_1[wtcr-16+2]=panentry->magic_I;
+							dmabuff_1[wtcr-16+3]=panentry->magic_Q+1;
+							dmabuff_1[wtcr-16+6]=panentry->magic_I+2;
+							dmabuff_1[wtcr-16+7]=panentry->magic_Q+3;
+							// key in frequency
+							dmabuff_1[wtcr-16+10]=panfreq&0xFFFF;
+							dmabuff_1[wtcr-16+11]=(panfreq>>16)&0xFFFF;
+							// key in trailer
+							dmabuff_1[wtcr-16+14]=panentry->magic_I+4;
+							dmabuff_1[wtcr-16+15]=panentry->magic_Q+5;
+
+							// channel A is IQ data, channel B is panscan
+							SetFreq(CH_B, panfreq, 1, f_adc);
+						}
+						else	//LIBMODE_16BAPAN
+						{
+							// key in magic in current position for chA IQ data
+							dmabuff_1[wtcr-16+0]=panentry->magic_I;
+							dmabuff_1[wtcr-16+1]=panentry->magic_Q+1;
+							dmabuff_1[wtcr-16+4]=panentry->magic_I+2;
+							dmabuff_1[wtcr-16+5]=panentry->magic_Q+3;
+							// key in frequency
+							dmabuff_1[wtcr-16+8]=panfreq&0xFFFF;
+							dmabuff_1[wtcr-16+9]=(panfreq>>16)&0xFFFF;
+							// key in trailer
+							dmabuff_1[wtcr-16+12]=panentry->magic_I+4;
+							dmabuff_1[wtcr-16+13]=panentry->magic_Q+5;
+
+							// channel B is IQ data, channel A is panscan
+							SetFreq(CH_A, panfreq, 1, f_adc);
+						}
+					}
+				//}
+			}
+
 			Endpoint_SelectEndpoint(CDC2_TX_EPNUM);
 
 			// Little obscure on a first glance, this routine is actually producing a code, what compiled with no optimization (OPT=0 in makefile)
@@ -1960,11 +2066,11 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 
 							if (AGCMode)
 							{
-								WriteRegister(20, ReadRegister(20)&0xF7, 1);	// enable AGC
+								WriteRegister(20, ReadRegister(20)&0xF7);	// enable AGC
 							}
 							else
 							{
-								WriteRegister(20, ReadRegister(20)|0x8, 1);		// 00xxx01x
+								WriteRegister(20, ReadRegister(20)|0x8);		// 00xxx01x
 																				//   ||||||
 																				//   |||||+- EXP_INH 0=allow exponent to pass into FLOAT TO FIXED converter 1=Force exponent in DDC channel to a 7 (max digital gain)
 																				//   |||++-- Reserved, do not use
@@ -1984,26 +2090,26 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 							{
 								// turn on compressor (fix exponent) and set gain to 1
 								Message(1, "Compressor ON (exponent fixed), gainA=ganB=1\r\n");
-								WriteRegister(20, ReadRegister(20)|1, 1);	// force exponent
+								WriteRegister(20, ReadRegister(20)|1);	// force exponent
 																			// 00xxx01x
 																			//   ||||||
 																			//   |||||+- EXP_INH 0=allow exponent to pass into FLOAT TO FIXED converter 1=Force exponent in DDC channel to a 7 (max digital gain)
 																			//   |||++-- Reserved, do not use
 																			//   ||+---- AGC_HOLD_IC 0=normal closed loop operation 1=Hold integrator at initial condition.
 																			//   ++----- Bit shift value for AGC loop. Valid range is from 0 to 3
-								WriteRegister(3, 1, 1);	// gain A =1
-								WriteRegister(4, 1, 1);	// gain B =1
+								WriteRegister(3, 1);	// gain A =1
+								WriteRegister(4, 1);	// gain B =1
 
 							}
 							else
 							{
 								// turn off compressor (release exponent) and set gain to 4
 								Message(1, "Compressor OFF (exponent passed), gainA=ganB=4\r\n");
-								WriteRegister(20, ReadRegister(20)&0xFE, 1);	// pass exponent
+								WriteRegister(20, ReadRegister(20)&0xFE);	// pass exponent
 								SetGain(CH_A, 4);
 								SetGain(CH_B, 4);
-								//WriteRegister(3, 4, 1);	// gain A =4
-								//WriteRegister(4, 4, 1);	// gain B =4
+								//WriteRegister(3, 4);	// gain A =4
+								//WriteRegister(4, 4);	// gain B =4
 							}
 						}
 						else
@@ -2029,7 +2135,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 									fixedgain_A=rfgain;
 									rfgain<<=5;
 									rfgain|=0x1F;
-									WriteRegister(23, ~(rfgain), 1);
+									WriteRegister(23, ~(rfgain));
 								}
 								else
 									Message(1, "RF Gain value has to be between 0 and 7\r\n");
@@ -2058,7 +2164,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 									Message(1, "RF (DVGA) Gain for CH_B set to %d (%s%ddB gain)\r\n", rfgain, (rfgain)?"+":"", rfgain*6);
 									rfgain<<=5;
 									rfgain|=0x1F;
-									WriteRegister(24, ~(rfgain), 1);
+									WriteRegister(24, ~(rfgain));
 								}
 								else
 									Message(1, "RF Gain value has to be between 0 and 7\r\n");
@@ -2091,7 +2197,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 							regno=strtol(carg1, NULL, 0);
 							regval=strtol(carg2, NULL, 0);
 
-							WriteRegister(regno, regval, 1);
+							WriteRegister(regno, regval);
 							Message(1, "Register %d (0x%02.2X) set to 0x%02.2X\r\n", regno, regno, regval);
 						}
 						else
@@ -2837,6 +2943,10 @@ void EVENT_USB_Device_ControlRequest(void)
 						Endpoint_ClearIN();
 						Endpoint_ClearStatusStage();
 
+						// in any case, set channel A and channel B to their respective RF frontends first
+						WriteRegister(19, 0x4);
+						panadapter = 0;
+
 						switch (USB_ControlRequest.wValue)
 						{
 							case LIBMODE_OFF:
@@ -2861,7 +2971,27 @@ void EVENT_USB_Device_ControlRequest(void)
 							case LIBMODE_TXTEST:		// reserved for bulk.c write transfer test
 									break;
 
+							case LIBMODE_16ABPAN:
+							case LIBMODE_16BAPAN:		// panadapter modes need to deliver 16-bit AB data
+									panadapter = USB_ControlRequest.wValue;
+									stepsdone = 0;		// reset panadapter frequency step counter
+
 							case LIBMODE_16AB:
+									if (USB_ControlRequest.wValue == LIBMODE_16AB)		// panadapter?
+									{
+										panadapter = 0;
+									}
+									else if (USB_ControlRequest.wValue == LIBMODE_16ABPAN)
+									{
+										// set channel A and B use channel A RF frontend
+										WriteRegister(19, 0x0);
+									}
+									else // LIBMODE_16BAPAN
+									{
+										// set channel A and B use channel B RF frontend
+										WriteRegister(19, 0x5);
+									}
+
 									gpio_set_pin_low(LED);
 									datamode = DATA_LIBUSB;
 
@@ -3076,10 +3206,10 @@ void EVENT_USB_Device_ControlRequest(void)
 
 						for (i=0; i<USB_ControlRequest.wLength; i++)
 						{
-							WriteRegister(firstreg++, Endpoint_Read_8(), 0);
+							WriteRegister(firstreg++, Endpoint_Read_8());
 						}
 
-						AssertSI();
+						//AssertSI();
 
 						Endpoint_ClearOUT();
 						Endpoint_ClearStatusStage();
@@ -3108,6 +3238,51 @@ void EVENT_USB_Device_ControlRequest(void)
 
 						Endpoint_ClearIN();
 						Endpoint_ClearStatusStage();
+					}
+
+					break;
+
+			case LIBUSB_PANTABLE:
+
+					// fetch global table for running panoramic scan on secondary channel
+					if (USB_ControlRequest.bmRequestType == (REQDIR_HOSTTODEVICE | REQTYPE_VENDOR | REQREC_DEVICE))
+					{
+					uint16_t i, regions;
+
+						Endpoint_ClearSETUP();
+
+						while (!(Endpoint_IsOUTReceived()));
+
+						panentries = USB_ControlRequest.wLength/sizeof(PANENTRY);
+
+						if (panentries == USB_ControlRequest.wValue)
+						{
+							if (pantable)
+								pantable = realloc(pantable, panentries*sizeof(PANENTRY));
+							else
+								pantable = malloc(panentries*sizeof(PANENTRY));
+
+							for (i=0; i<USB_ControlRequest.wLength; i++)
+							{
+								//WriteRegister(firstreg++, Endpoint_Read_8());
+								pantable[i]=Endpoint_Read_8();
+							}
+							
+							// multiply sample count by 4 for each entry, so we do not have to do this for each cycle
+												
+							for (i=0; i<panentries; i++)
+							{
+								panentry=pantable+(i*sizeof(PANENTRY));
+								panentry->samples*=4;
+							}
+						}
+
+						//AssertSI();
+
+						Endpoint_ClearOUT();
+						Endpoint_ClearStatusStage();
+
+						Endpoint_ClearSETUP();
 					}
 
 					break;

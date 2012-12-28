@@ -183,7 +183,7 @@ void SetSI(int state)
 }
 
 
-void WriteRegister(unsigned char regno, unsigned char regval, unsigned char toggle_si)
+void WriteRegister(unsigned char regno, unsigned char regval)
 {
 uint32_t data_low, data_high, addr_low, addr_high;
 
@@ -218,9 +218,41 @@ uint32_t data_low, data_high, addr_low, addr_high;
 
 	gpio_configure_group(PORTA, address_bitmask, GPIO_DIR_INPUT);		// free address bus for input (buttons etc.)
 	gpio_configure_group(PORTA, data_bitmask, GPIO_DIR_INPUT);		// set data bus as input (no need really to do that)
+}
 
-	if (toggle_si)
-		AssertSI();
+// For using with panadapter frequency writes
+void WriteRegister_Fast(unsigned char regno, unsigned char regval)
+{
+uint32_t data_low, data_high, addr_low, addr_high;
+
+	//check, if A1 or A3 are low (means that HWBE or BTN1 (optional) is pressed and we shall not drive address bus
+	if ((!gpio_get_pin_value(HWBE)) /*|| (!gpio_get_pin_value(BTN1)) stalls system when R67 is not populated! */)
+		return;
+
+	gpio_configure_group(PORTA, address_bitmask|data_bitmask, GPIO_DIR_OUTPUT|GPIO_INIT_LOW);	// enable address and bus and clear bits
+
+	data_low=(regval&7);				// D0,D1,D2
+	data_high=(regval&0xF8);			// D3,D4,D5,D6,D7
+
+	data_low<<=AVR32_PIN_PA06;		// D0 is now at the place of PA06
+	data_high<<=AVR32_PIN_PA20-3;		// D3 is now at the place of PA20
+
+	addr_low=(regno&3);				// A0,A1
+	addr_high=(regno&0xFC);			// A2,A3,A4,A5,A6,A7
+
+	addr_low<<=AVR32_PIN_PA12;		// A0 is now at the place of PA12
+	addr_high<<=AVR32_PIN_PA26-2;		// A2 is now at the place of PA26
+
+	gpio_set_group_high(PORTA, data_low|data_high|addr_low|addr_high);		// output address and data
+
+	cpu_delay_us(1, F_CPU);		// was 10 // the address bus is slow, as we do have 10K resistors between shared signals. Therefore needed delay is longer than normal
+
+	gpio_set_pin_low(xWR);
+	cpu_delay_us(1, F_CPU);
+	gpio_set_pin_high(xWR);
+
+	gpio_configure_group(PORTA, address_bitmask, GPIO_DIR_INPUT);	// free address bus for input (buttons etc.)
+	//gpio_configure_group(PORTA, data_bitmask, GPIO_DIR_INPUT);		// set data bus as input (no need really to do that)
 }
 
 unsigned char ReadRegister(unsigned char regno)
@@ -273,13 +305,13 @@ uint8_t DiversityMode(uint8_t mode, uint32_t adcfreq)
 	if (diversity)
 	{
 		SetFreq(CH_B, lastfreq_A, 1, adcfreq);		// sync frequencys
-		WriteRegister(246, 0, 1);
-		WriteRegister(247, 0, 1);					// use filter set A for both channels, as both have to be full-bandwidth
+		WriteRegister(246, 0);
+		WriteRegister(247, 0);					// use filter set A for both channels, as both have to be full-bandwidth
 	}
 	else
 	{
-		WriteRegister(246, 2, 1);
-		WriteRegister(247, 2, 1);					// use filter set A for channel A and filter set B for channel B
+		WriteRegister(246, 2);
+		WriteRegister(247, 2);					// use filter set A for channel A and filter set B for channel B
 	}
 
 	return diversity;
@@ -335,18 +367,18 @@ int16_t i;
 		if (channel == CH_A)
 		{
 			for (i=0; i<4; i++)
-				WriteRegister(FREQ_A+i, reg.freq_a[i], 0);
+				WriteRegister(FREQ_A+i, reg.freq_a[i]);
 		}
 		else
 		{
 			for (i=0; i<4; i++)
-				WriteRegister(FREQ_B+i, reg.freq_b[i], 0);
+				WriteRegister(FREQ_B+i, reg.freq_b[i]);
 		}
 
 		if ((diversity) && (channel == CH_A))		// sync A and B frequencys for diversity math
 		{
 			for (i=0; i<4; i++)
-				WriteRegister(FREQ_B+i, reg.freq_a[i], 0);
+				WriteRegister(FREQ_B+i, reg.freq_a[i]);
 
 			lastfreq_B=lastfreq_A;
 		}
@@ -354,6 +386,68 @@ int16_t i;
 		//AssertSI(); do not use, as DMA buffer sync gets broken this way!
 	}
 }
+
+
+//A faster version for using with panadapter scanner
+
+void SetFreq_Fast(int16_t channel, int32_t _freq, int16_t write, uint32_t adcfreq)
+{
+int64_t full;
+int64_t clockfreq;
+int64_t freq;
+int32_t freqval;
+char* freqstore;
+int16_t i;
+
+	clockfreq=adcfreq;
+
+	full=1;
+	full<<=32;		//2^32
+	
+	freq=0-_freq;
+	freqval=(full*freq/clockfreq);
+
+	if (channel == CH_A)
+	{
+		freqstore=reg.freq_a;
+		lastfreq_A=_freq;
+	}
+	else
+	{
+		freqstore=reg.freq_b;
+		lastfreq_B=_freq;
+	}
+
+	freqstore[0]=freqval&0xFF;
+	freqstore[1]=(freqval>>8)&0xFF;
+	freqstore[2]=(freqval>>16)&0xFF;
+	freqstore[3]=(freqval>>24)&0xFF;
+
+	//if (write)
+	//{
+		if (channel == CH_A)
+		{
+			for (i=0; i<4; i++)
+				WriteRegister_Fast(FREQ_A+i, reg.freq_a[i]);
+		}
+		else
+		{
+			for (i=0; i<4; i++)
+				WriteRegister_Fast(FREQ_B+i, reg.freq_b[i]);
+		}
+/*
+		if ((diversity) && (channel == CH_A))		// sync A and B frequencys for diversity math
+		{
+			for (i=0; i<4; i++)
+				WriteRegister_Fast(FREQ_B+i, reg.freq_a[i]);
+
+			lastfreq_B=lastfreq_A;
+		}
+*/
+		//AssertSI(); do not use, as DMA buffer sync gets broken this way!
+	//}
+}
+
 
 void SetPhase(int16_t channel, uint16_t phaseword)
 {
@@ -375,12 +469,12 @@ int16_t i;
 	if (channel == CH_A)
 	{
 		for (i=0; i<2; i++)
-			WriteRegister(PHASE_A+i, reg.phase_a[i], 0);
+			WriteRegister(PHASE_A+i, reg.phase_a[i]);
 	}
 	else
 	{
 		for (i=0; i<2; i++)
-			WriteRegister(PHASE_B+i, reg.phase_b[i], 0);
+			WriteRegister(PHASE_B+i, reg.phase_b[i]);
 	}
 
 
@@ -396,27 +490,27 @@ uint8_t expfixed=0;
 	if (_gain < 8)
 	{
 		if (channel == CH_A)
-			WriteRegister(3, _gain, 0);
+			WriteRegister(3, _gain);
 		else
-			WriteRegister(4, _gain, 0);
+			WriteRegister(4, _gain);
 
 		if (ReadRegister(20)&1)
 		{
 			expfixed=1;	//Message(1, "ATTN! Exponent is now cleared for both channels!\r\n");
-			WriteRegister(20, ReadRegister(20)&0xFE, 1);
+			WriteRegister(20, ReadRegister(20)&0xFE);
 		}
 	}
 	else if (_gain <=15)
 	{
 		if (channel == CH_A)
-			WriteRegister(3, _gain-8, 0);
+			WriteRegister(3, _gain-8);
 		else
-			WriteRegister(4, _gain-8, 0);
+			WriteRegister(4, _gain-8);
 
 		if ((ReadRegister(20)&1) == 0)
 		{
 			expfixed=2;	//Message(1, "ATTN! Exponent is now forced to 111 for both channels!\r\n");
-			WriteRegister(20, ReadRegister(20)|1, 1);		// force exponent
+			WriteRegister(20, ReadRegister(20)|1);		// force exponent
 		}
 	}
 
@@ -707,9 +801,9 @@ char* regpool;
 			if (regstruct[i].flags & R_INIT)
 			{
 				if (regstruct[i].flags & R_ASSERT_SI)
-					WriteRegister(regstruct[i].regaddr+j, regpool[k], 1);
+					WriteRegister(regstruct[i].regaddr+j, regpool[k]);
 				else
-					WriteRegister(regstruct[i].regaddr+j, regpool[k], 0);
+					WriteRegister(regstruct[i].regaddr+j, regpool[k]);
 			}
 		}
 	}
@@ -826,7 +920,7 @@ int16_t i,j;
 		{
 			for (j=0; j<regstruct[i].datalen; j++)
 			{
-				WriteRegister(regstruct[i].regaddr+j, xrand() / 257, 1);
+				WriteRegister(regstruct[i].regaddr+j, xrand() / 257);
 			}
 		}
 	}

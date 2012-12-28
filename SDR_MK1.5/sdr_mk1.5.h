@@ -90,11 +90,14 @@
 						!	NetSDR protocol 24-bit data works, but is turned off to save bandwidth (was not really giving much advantage!)
 	v1.91	21.11.2012	-	Fixed ugly bug with UDP packet formation, what caused the first 20 bytes of I/Q data being incorrect
 
+	v1.92	29.11.2012	-	Removed AssertSI() hooks from LM97593 WriteRegister(), since this was messing up I/Q sync on fast data rates	
+	v1.93	28.12.2012	-	Preliminary release for panadapter support
+
 */
 
-#define	VERINFO		"v1.91"
+#define	VERINFO		"v1.93"
 #define VER_MAJOR	1
-#define VER_MINOR	91
+#define VER_MINOR	93
 
 /*
  To Do:
@@ -112,7 +115,7 @@
 		? Figure out, why (or if) there is an intermodulation in 10kHz+ sinewawe
 		x Implement sample rate feedback
 		x Implement audio data capture and control through CDC device (SDR-IQ and ExtIO DLL compatible)
-		- Finish SDR-IQ compatible prtocol (or deprecate officially?)
+		- Finish SDR-IQ compatible protocol (or deprecate officially?)
 		* SampleMode() shall recalculate clock synthesizer to find best match for any given sample frequency
 		* DHCP
 		* NetSDR UDP broadcast discovery of radio
@@ -131,9 +134,10 @@
 		  Works as a workaround for time being, but has to be reworked.
 		- IPv6 support (far in the future ..)
 		- NetSDR small and MK1.5 XLarge packet length support
-		- Radio ID and random session token (generated from rx I/Q signal) based based Network configuration through UDP broadcast message
+		- Radio ID and random session token (generated from rx I/Q signal) based Network configuration through UDP broadcast message
 		! F_ADC/2 SSC data rate is not working, even if clock is below 58MHz
 		- Fix help
+		- sdr-radio gain at startup behaves strange
  */
 
 /** \file
@@ -206,18 +210,22 @@ void Init_SSC(uint16_t bytespeframe, int enablerx);
 #define		LIBUSB_GETVER			21
 #define		LIBUSB_SETGAIN			22
 #define		LIBUSB_SETPHASE			23
+#define		LIBUSB_PANTABLE			24
 
 #define		LIBUSB_CHA			0
 #define		LIBUSB_CHB			1
 
-// LIBUSB_MODE flags
+// LIBUSB_MODE flags. NB!! These must be kept in sync with ExtIO DLL radio button values!
 
 #define		LIBMODE_16A			0	//A only
 #define		LIBMODE_16B			1	//B only
 #define		LIBMODE_16APB		2	//A+B
 #define		LIBMODE_16AMB		3	//A-B
 #define		LIBMODE_16BMA		4	//B-A
-#define		LIBMODE_16AB		5	//A,B
+#define		LIBMODE_16ABPAN		5	//A, B=panscan
+#define		LIBMODE_16BAPAN		6	//A=panscan, B
+
+#define		LIBMODE_16AB		7	//A,B
 
 #define		LIBMODE_OFF			10
 #define		LIBMODE_SPEEDTEST	11
@@ -270,6 +278,18 @@ typedef const struct
 	// always keep as last two bytes of the area
 	uint16_t crc;		// 16-bit CRC of flash parameter area
 } nvram_data_t;
+
+// structure for running the panoramic scan by
+typedef struct
+{
+	uint32_t	startfreq;	// boundary frequency start (Hz)
+	uint32_t	samples;	// how many samples to fetch (note, that this is only indicative -- the actual sample count varies (is somewhat higher), since we can not guarantee that good latency.
+							// Parsing on the host side has to go always by magic word, NOT by counting samples.
+	uint32_t	stepfreq;	// frequency increment (Hz)
+	uint32_t	steps;		// how many steps to increment before going to next table entry
+	uint16_t	magic_I;	// magic token - if three consecutive I and Q pairs are equal to these values, it indicates the beginning of the panoramic packet of particular kind
+	uint16_t	magic_Q;
+} PANENTRY;
 
 #endif
 

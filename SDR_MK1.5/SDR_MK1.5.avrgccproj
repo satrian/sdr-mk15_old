@@ -276,6 +276,9 @@
     <Compile Include="cdce913_coeff.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="cycle_counter.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="Descriptors.c">
       <SubType>compile</SubType>
     </Compile>

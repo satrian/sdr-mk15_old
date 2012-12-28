@@ -46,7 +46,7 @@
 #include <string.h>
 
 //#define USE_24BITNET	1
-//#define NAMETEST 1
+//#define NAMETEST ""
 
 #if UIP_UDP
 #else
@@ -336,18 +336,6 @@ void NetSDR_init(void)
 }
 
 /*
-#define SWAPDMAENDIAN(netdmabuff)	{ \
-										uint8_t y;\
-										for(int x=0; x<NETDATALEN; x+=2) \
-										{\
-											y=netdmabuff[x];\
-											netdmabuff[x]=netdmabuff[x+1];\
-											netdmabuff[x+1]=y;\
-										}\
-									};
-
-*/
-/*
 This is our regular working routine what is called inside main loop of the SDR_MK1.5.c
 */
 
@@ -377,13 +365,11 @@ unsigned long d;
 		// There seems no method so far to teach any of the AVR32 internal controllers we use on that data path (PDCA, SSC, SPI)
 		// to swap endian (only can swap bit order in general ..) so we have to waste time here to do it manually ..
 		//
-		// This, combined with fact that most NetSDR stuff (or is it cutesdr only?) likes to operate with 1024+2+2 byte packets in 16-bit mode,
-		// effectively inhibits all faster data modes than 200kHz ..
-
-		// short pointer is needed for endian swapping only
+		// Doing it as a background task while network DMA transfer is in progress, does not give much data rate penalty, since
+		// CPU would be idle during that time anyway.
 
 		uip_buf_short=(void*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + 4];		// used for 16-bit byteswap
-		uip_buf_byte=(void*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + 4];		// used for 24-bit byteswap
+		uip_buf_byte=(void*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + 4];			// used for 24-bit byteswap and for Tx
 
 		// if someone has requested IQ bytes dump, output 60x4 words from buffer top
 		if (netiqdump)
@@ -408,7 +394,7 @@ unsigned long d;
 
 		for (i=0, j=0; i<NetDataPackets; i++)
 		{
-			// On first pass swap as much endians as needed for first packet, otherwise swap the reminder
+			// If current packet is not fully endian-swapped yet, finish swapping first
 			if (ReverseEndian)
 			{
 				if (BitDepth == _16BIT)
@@ -419,14 +405,14 @@ unsigned long d;
 #ifdef USE_24BITNET
 				else  //24-bit data
 				{
-					// LM97593 sends data in CCAABB form, so we have to reverse only last two bytes to get the "lsb first" format
+					// We have to reverse only first and last bytes to get the "lsb first" format
 					for (; j<(((i+1)*NetPktLen)); j+=3)
 					{
 					uint8_t b;
 
 						b=uip_buf_byte[j];
 						uip_buf_byte[j]=uip_buf_byte[j+2];
-						uip_buf_byte[j+2]=b;						
+						uip_buf_byte[j+2]=b;
 					}
 				}
 #endif
@@ -448,11 +434,8 @@ unsigned long d;
 			ksz8851BeginPacketSend(uip_len);
 			ksz8851SendPacketData((uint8_t *)uip_buf, UIP_LLH_LEN + UIP_IPUDPH_LEN + 2 + 2);
 			ksz8851SendPacketDataNonBlocking((uint8_t*)uip_buf_byte+(i*NetPktLen), NetPktLen);		// note the use of non-blocking function here!
-			
-			//ksz8851SendPacketData((uint8_t *)uip_buf, 54+2+2);			
-			//ksz8851SendPacketDataNonBlocking((uint8_t *)uip_appdata+2+2+(i*(NetPktLen)), /*NetPktLen-2-2*/uip_len-UIP_LLH_LEN-40-2-2);		// note the use of non-blocking function here!			
-						                                                  
-			//While the packet sends itself, go swap as much endians as we can meanwhile
+
+			//While the packet sends itself, go swap as much endians as we can in that time
 			if (ReverseEndian)
 			{
 				if (BitDepth == _16BIT)
@@ -463,7 +446,7 @@ unsigned long d;
 #if USE_24BITNET
 				else
 				{
-					// LM97593 sends data in CCAABB form, so we have to reverse only last two bytes to get the "lsb first" format
+					// We have to reverse only first and last bytes to get the "lsb first" format
 					for(; (j<NetDataLen)&&(!spi_tx_completed()); j+=3)
 					{
 					uint8_t b;
@@ -620,7 +603,7 @@ unsigned char sdripaddr[4];
 			dresp.key[1]=0xA5;
 			dresp.op=1;										//unsigned char op;			//0==Request(to device) 1==Response(from device) 2 ==Set(to device)
 #ifdef NAMETEST
-			sprintf(dresp.name, "");						// max 15bytes + /0
+			sprintf(dresp.name, NAMETEST);						// max 15bytes + /0
 #else
 			sprintf(dresp.name, "SDR MK1.5");				// max 15bytes + /0
 #endif
@@ -825,7 +808,7 @@ static uint16_t SampleRateSet=0;
 		case 1:		//Returns an ASCII string describing the Target device.
 #ifdef NAMETEST
 			memmove(netretdata+netretlen, "\xB\0\1\0", 4);
-			sprintf(netretdata+netretlen+4, "");
+			sprintf(netretdata+netretlen+4, NAMETEST);
 			netretlen+=4+7;		// including terminating 0
 #else
 			memmove(netretdata+netretlen, "\x17\0\1\0", 4);
@@ -930,7 +913,7 @@ static uint16_t SampleRateSet=0;
 				/// program multiplexer
 				///regval=ReadRegister(6);
 				///regval|=(1<<4);			// set MUX_MODE to 1, so both channels data is transmitted
-				///WriteRegister(6, regval, 0);
+				///WriteRegister(6, regval);
 				//InitIQDataEngine(_2X16BIT_IQ);			// configure SSC engine to fetch 4 words since both channel data is delivered during single frame sync. Force 16-bit here
 				// Note, that SampleMode() recalculates our ADC master clock to have the clocks dividing without jitter.
 				SampleMode(48000, DUAL_CHANNEL, _16BIT, DATA_AUDIO);		// go with 16 bits for here and now (also recalculates LO frequencys)
@@ -974,7 +957,7 @@ static uint16_t SampleRateSet=0;
 				/// program multiplexer
 				/// taken care at Init_LM97593() now regval=ReadRegister(6);
 				///regval&=~(1<<4);			// set MUX_MODE to 0, so only single channel data is transmitted
-				///WriteRegister(6, regval, 0);
+				///WriteRegister(6, regval);
 #ifdef USE_24BITNET
 				if (payload[2] & 0x80)	// 24-bit data requested?
 				{
@@ -1224,7 +1207,7 @@ static uint16_t SampleRateSet=0;
 
 			memmove(netretdata+netretlen, "\5\0\xC4\0", 4);
 			memmove(netretdata+netretlen+4, payload, 1);
-			
+
 			switch(payload[0])
 			{
 				case 0x80:				//[MK1.5] 0x80 = Large UDP packets (1444 bytes(24bit data) or 1028 bytes(16bit data), BIG ENDIAN data
@@ -1264,7 +1247,7 @@ static uint16_t SampleRateSet=0;
 			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
 			netretlen+=2;
 			break;
-			
+
 		default:
 			memmove(netretdata+netretlen, "\2\0", 2);	//NAK
 			netretlen+=2;

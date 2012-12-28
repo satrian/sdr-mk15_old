@@ -1322,11 +1322,11 @@
  74724              	.Letext0:
 DEFINED SYMBOLS
                             *ABS*:00000000 sysclk.c
-C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74406  .text.sysclk_init:00000000 sysclk_init
-C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74420  .text.sysclk_priv_disable_module:00000000 sysclk_priv_disable_module
-C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74471  .text.sysclk_disable_pbb_module:00000000 sysclk_disable_pbb_module
-C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74529  .text.sysclk_priv_enable_module:00000000 sysclk_priv_enable_module
-C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74580  .text.sysclk_enable_pbb_module:00000000 sysclk_enable_pbb_module
-C:\Users\Laid\AppData\Local\Temp\ccUH4Gf6.s:74643  .bss:00000000 sysclk_pbb_refcount
+C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74406  .text.sysclk_init:00000000 sysclk_init
+C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74420  .text.sysclk_priv_disable_module:00000000 sysclk_priv_disable_module
+C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74471  .text.sysclk_disable_pbb_module:00000000 sysclk_disable_pbb_module
+C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74529  .text.sysclk_priv_enable_module:00000000 sysclk_priv_enable_module
+C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74580  .text.sysclk_enable_pbb_module:00000000 sysclk_enable_pbb_module
+C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74643  .bss:00000000 sysclk_pbb_refcount
 
 NO UNDEFINED SYMBOLS
