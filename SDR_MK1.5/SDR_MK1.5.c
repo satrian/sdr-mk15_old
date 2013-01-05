@@ -218,6 +218,7 @@ char* pantable = NULL;							// this will host our panoramic scan regions table 
 PANENTRY* panentry;
 
 uint16_t stepsdone = 0;
+uint16_t currentpanentry = 0;
 
 volatile uint32_t SSCSFSIntCounter=0;
 volatile uint32_t IntTime=0;					// first IRQ execution time (milliseconds from start)
@@ -711,7 +712,7 @@ volatile uint32_t sineptra=0, sineptrb=0;
 //volatile int32_t dmabuff_1[512] __attribute__((aligned(0x10)));
 //#endif
 
-#define DMAMASK		0x1FFF	//0x7FF
+#define DMAMASK		0x3FFFU	//0x1FFF	//0x7FF
 //volatile uint16_t dmabuff_1[(2*(DMAMASK+1))+2] __attribute__((aligned(0x20)));		// Align by 0x20. Makes it 0x8 aligned as well as needed by 16-bit mode, but at 16-bit single channel bulk mode we need to be
 																					// sure that we have 32 bytes ahead of us. Get int32_t*(DMAMASK+1) worth of memory, but allocate as int16_t to make the
 																					// dmabuff_1[] addressing simple for 16-bit samples for audio output (24-bit (using 32-bit width) goes bizarre tho ... )
@@ -1236,9 +1237,8 @@ bool showecho=true;
 bool createzlp=false;
 int bytessent=0;
 
-uint32_t wtcr, last_wtcr=0, worddiff;
+uint32_t dmaoffset, last_dmaoffset=0, worddiff;
 uint32_t panfreq;
-uint16_t stepsdone=0;
 
 uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 120-bit (15 bytes)
 
@@ -1401,8 +1401,10 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 		panentry->startfreq=0;
 		panentry->stepfreq=64000;
 		panentry->steps=500;
-		
-		panentry->samples*=4;
+		panentry->skip=8;
+
+		panentry->samples*=4;		// multiply by 4, as each sample in our context is 2 IQ pairs, i.e. 4 words
+		panentry->skip*=4;
 
 		/*
 		panentry->magic_I=0x55AA;
@@ -1418,10 +1420,11 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 	{
 		if (datamode != DATA_NETWORK)			// update variables only in non-network mode to save some time
 		{
-			woffsetx=pdca_channel->mar;			// highwater mark - this is where last data was placed into buffer
+			woffsetx=pdca_channel->mar;			// highwater mark - this is where the next data is placed into buffer
+			dmaoffset=woffsetx;					// make dmaoffset pointing the same address as woffsetx does
 
-			woffsetx&=~(0x1F);					// Eliminate partial transfers.
-												// The longest data to fetch is 4 I/Q sample pairs form channel B, what accounts alltogether 32 bytes (4 full I/Q A and B pairs)
+			woffsetx&=~(0x1FU);					// Eliminate partial transfers.
+												// The longest data to fetch is 4 I/Q sample pairs form channel B, what accounts alltogether 32 bytes (4 full I/Q A and B pairs), thus 1F.
 		}
 
 		if (datamode == DATA_LIBUSB)		// transfer data through bulk endpoint
@@ -1431,69 +1434,73 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 
 			if (panadapter)
 			{
-				panentry=pantable;			// just point to the first record, the rest is ignored at the moment
+				panentry=pantable+(currentpanentry*sizeof(PANENTRY));			// point to the correct panentry record
 
-				//if (wtcr)
-				//{
-					wtcr=((DMAMASK+1)*2)-pdca_channel->tcr;	// its a countdown register, so reverse it
-					wtcr/=2;								// convert to words
-					wtcr&=0xFFFFFFFC;						// always point to IA
+				//dmaoffset=pdca_channel->mar-(unsigned long)dmabuff_1;			// offset of the next write address inside the buffer
+				dmaoffset-=(unsigned long)dmabuff_1;
+				dmaoffset/=2;													// convert to words
+				dmaoffset&=~(3U);										// always point to IA
 
-					if (last_wtcr < wtcr)
-						worddiff=wtcr-last_wtcr;
-					else
-						worddiff=wtcr+(DMAMASK+1)-last_wtcr;
+				if (last_dmaoffset < dmaoffset)
+					worddiff=dmaoffset-last_dmaoffset;
+				else
+					worddiff=dmaoffset+(DMAMASK+1)-last_dmaoffset;
 
-					if ((worddiff >= (panentry->samples+(2*16))) && (wtcr > 32))	// at least requested sample count + 16 words to store magic info and frequency
-					{						
-						last_wtcr=wtcr;								// reset current pointer
+				if ((worddiff >= (panentry->samples+16+panentry->skip)))	// at least requested sample count + 16 words to store magic info and frequency + skip area for frequency change
+				{
+					last_dmaoffset=dmaoffset;					// reset current pointer
 
-						panfreq=panentry->startfreq;
-						panfreq+=stepsdone*panentry->stepfreq;		// new scan starting freq
+					panfreq=panentry->startfreq;
+					panfreq+=stepsdone*panentry->stepfreq;		// new scan starting freq
 
-						stepsdone++;
+					stepsdone++;
 
-						if (stepsdone == panentry->steps)
-							stepsdone=0;
-
-						// Now change frequency. Note that registry write etc. takes some time, so we will have to ignore some of the data after the magic!
-
-						if (panadapter == LIBMODE_16ABPAN)
-						{
-							// key in magic in current position for chB IQ data
-							dmabuff_1[wtcr-16+2]=panentry->magic_I;
-							dmabuff_1[wtcr-16+3]=panentry->magic_Q+1;
-							dmabuff_1[wtcr-16+6]=panentry->magic_I+2;
-							dmabuff_1[wtcr-16+7]=panentry->magic_Q+3;
-							// key in frequency
-							dmabuff_1[wtcr-16+10]=panfreq&0xFFFF;
-							dmabuff_1[wtcr-16+11]=(panfreq>>16)&0xFFFF;
-							// key in trailer
-							dmabuff_1[wtcr-16+14]=panentry->magic_I+4;
-							dmabuff_1[wtcr-16+15]=panentry->magic_Q+5;
-
-							// channel A is IQ data, channel B is panscan
-							SetFreq(CH_B, panfreq, 1, f_adc);
-						}
-						else	//LIBMODE_16BAPAN
-						{
-							// key in magic in current position for chA IQ data
-							dmabuff_1[wtcr-16+0]=panentry->magic_I;
-							dmabuff_1[wtcr-16+1]=panentry->magic_Q+1;
-							dmabuff_1[wtcr-16+4]=panentry->magic_I+2;
-							dmabuff_1[wtcr-16+5]=panentry->magic_Q+3;
-							// key in frequency
-							dmabuff_1[wtcr-16+8]=panfreq&0xFFFF;
-							dmabuff_1[wtcr-16+9]=(panfreq>>16)&0xFFFF;
-							// key in trailer
-							dmabuff_1[wtcr-16+12]=panentry->magic_I+4;
-							dmabuff_1[wtcr-16+13]=panentry->magic_Q+5;
-
-							// channel B is IQ data, channel A is panscan
-							SetFreq(CH_A, panfreq, 1, f_adc);
-						}
+					if (stepsdone >= panentry->steps)
+					{
+						stepsdone=0;
+						//advance by one in the pantable
+						currentpanentry++;
+						if (currentpanentry >= panentries)
+							currentpanentry=0;
 					}
-				//}
+
+					// Now change frequency. Note that registry write etc. takes some time, so we will have to ignore some of the data after the magic!
+
+					if (panadapter == LIBMODE_16ABPAN)
+					{
+						// key in magic in current position for chB IQ data
+						dmabuff_1[(dmaoffset-16+2)&DMAMASK]=panentry->magic_I;
+						dmabuff_1[(dmaoffset-16+3)&DMAMASK]=panentry->magic_Q+1;
+						dmabuff_1[(dmaoffset-16+6)&DMAMASK]=panentry->magic_I+2;
+						dmabuff_1[(dmaoffset-16+7)&DMAMASK]=panentry->magic_Q+3;
+						// key in frequency
+						dmabuff_1[(dmaoffset-16+10)&DMAMASK]=panfreq&0xFFFF;
+						dmabuff_1[(dmaoffset-16+11)&DMAMASK]=(panfreq>>16)&0xFFFF;
+						// key in trailer
+						dmabuff_1[(dmaoffset-16+14)&DMAMASK]=panentry->magic_I+4;
+						dmabuff_1[(dmaoffset-16+15)&DMAMASK]=panentry->magic_Q+5;
+
+						// channel A is IQ data, channel B is panscan
+						SetFreq_Fast(CH_B, panfreq, 1, f_adc);
+					}
+					else	//LIBMODE_16BAPAN
+					{
+						// key in magic in current position for chA IQ data
+						dmabuff_1[(dmaoffset-16+0)&DMAMASK]=panentry->magic_I;
+						dmabuff_1[(dmaoffset-16+1)&DMAMASK]=panentry->magic_Q+1;
+						dmabuff_1[(dmaoffset-16+4)&DMAMASK]=panentry->magic_I+2;
+						dmabuff_1[(dmaoffset-16+5)&DMAMASK]=panentry->magic_Q+3;
+						// key in frequency
+						dmabuff_1[(dmaoffset-16+8)&DMAMASK]=panfreq&0xFFFF;
+						dmabuff_1[(dmaoffset-16+9)&DMAMASK]=(panfreq>>16)&0xFFFF;
+						// key in trailer
+						dmabuff_1[(dmaoffset-16+12)&DMAMASK]=panentry->magic_I+4;
+						dmabuff_1[(dmaoffset-16+13)&DMAMASK]=panentry->magic_Q+5;
+
+						// channel B is IQ data, channel A is panscan
+						SetFreq_Fast(CH_A, panfreq, 1, f_adc);
+					}
+				}
 			}
 
 			Endpoint_SelectEndpoint(CDC2_TX_EPNUM);
@@ -1505,8 +1512,9 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 			{
 				while (Endpoint_IsReadWriteAllowed())
 				{
-					if ((uint32_t)&dmabuff_1[roffseta&DMAMASK]==woffsetx)				// reached the end of buffer, so break. (use woffset+1 to test the max speed, as on this case the transfers are not terminated at all)
-						break;
+					if ((uint32_t)&dmabuff_1[(roffseta+16)&DMAMASK]==woffsetx)			// reached the end of buffer, so break. (use woffset+1 to test the max speed, as on this case the transfers are not terminated at all)
+						break;															// also, leave last 16 bytes in buffer, since we are patching in the panscanner header information there.
+																						// The +16 is needed to establish a no-transfer area to patch the panscanner header into, if needed
 
 					// note, that to prevent pointer mathematics inside loop for various modes (A/B/AB), we are using pre-offset pointers here!
 
@@ -2974,7 +2982,8 @@ void EVENT_USB_Device_ControlRequest(void)
 							case LIBMODE_16ABPAN:
 							case LIBMODE_16BAPAN:		// panadapter modes need to deliver 16-bit AB data
 									panadapter = USB_ControlRequest.wValue;
-									stepsdone = 0;		// reset panadapter frequency step counter
+									stepsdone = 0;			// reset panadapter frequency step counter
+									currentpanentry = 0;	// start from the beginning of table
 
 							case LIBMODE_16AB:
 									if (USB_ControlRequest.wValue == LIBMODE_16AB)		// panadapter?
@@ -3267,14 +3276,17 @@ void EVENT_USB_Device_ControlRequest(void)
 								//WriteRegister(firstreg++, Endpoint_Read_8());
 								pantable[i]=Endpoint_Read_8();
 							}
-							
+
 							// multiply sample count by 4 for each entry, so we do not have to do this for each cycle
-												
+
 							for (i=0; i<panentries; i++)
 							{
 								panentry=pantable+(i*sizeof(PANENTRY));
-								panentry->samples*=4;
+								panentry->samples*=4;		// multiply by 4, as each sample in our context is 2 IQ pairs, i.e. 4 words
+								panentry->skip*=4;
 							}
+
+							stepsdone=0;		//reset step scanner
 						}
 
 						//AssertSI();

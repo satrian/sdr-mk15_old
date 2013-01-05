@@ -90,14 +90,18 @@
 						!	NetSDR protocol 24-bit data works, but is turned off to save bandwidth (was not really giving much advantage!)
 	v1.91	21.11.2012	-	Fixed ugly bug with UDP packet formation, what caused the first 20 bytes of I/Q data being incorrect
 
-	v1.92	29.11.2012	-	Removed AssertSI() hooks from LM97593 WriteRegister(), since this was messing up I/Q sync on fast data rates	
+	v1.92	29.11.2012	-	Removed AssertSI() hooks from LM97593 WriteRegister(), since this was messing up I/Q sync on fast data rates
 	v1.93	28.12.2012	-	Preliminary release for panadapter support
+
+	v1.94	30.12.2012	-	Fixed bug in panadapter step scanning initialization (new panentry did not zero step counter)
+						-	Fixed bug where data area for panadapter samples header was transmitted by USB before the header was actually patched in
+	v1.95	04.01.2013	-	Added skip counter for panentry structure
 
 */
 
-#define	VERINFO		"v1.93"
+#define	VERINFO		"v1.95"
 #define VER_MAJOR	1
-#define VER_MINOR	93
+#define VER_MINOR	95
 
 /*
  To Do:
@@ -289,6 +293,8 @@ typedef struct
 	uint32_t	steps;		// how many steps to increment before going to next table entry
 	uint16_t	magic_I;	// magic token - if three consecutive I and Q pairs are equal to these values, it indicates the beginning of the panoramic packet of particular kind
 	uint16_t	magic_Q;
+	uint16_t	skip;		// how many IQ pairs to skip after frequency change
+	uint16_t	dummy;		// unpacked structure, so have it multiples of 32-bit (what it is anyway)
 } PANENTRY;
 
 #endif
