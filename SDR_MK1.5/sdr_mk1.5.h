@@ -96,12 +96,14 @@
 	v1.94	30.12.2012	-	Fixed bug in panadapter step scanning initialization (new panentry did not zero step counter)
 						-	Fixed bug where data area for panadapter samples header was transmitted by USB before the header was actually patched in
 	v1.95	04.01.2013	-	Added skip counter for panentry structure
+	v1.96	07.03.2013	-	Changed AGC_COMB_ORD from 0 (2'nd order decimate-by8 CIC) to 2 (4-tap comb added to CIC) in order to fix the problem where
+							6dB region from top of all AGC ranges was causing DRC to go clipping
 
 */
 
-#define	VERINFO		"v1.95"
+#define	VERINFO		"v1.96"
 #define VER_MAJOR	1
-#define VER_MINOR	95
+#define VER_MINOR	96
 
 /*
  To Do:

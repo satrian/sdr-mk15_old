@@ -775,7 +775,7 @@ if (freqandphase)
 							//       |+- SFS_MODE 0=SFS asserted at the start of each output word when PACKED=1 or each I/Q pair when PACKED=0; 1=SFS asserted at te start of each output sample period
 							//       +-- SDC_EN 0=normal serial mode; 1=serial daisy-chain master mode
 
-	reg.agc_ctrl2=0x20;		// 0xxxxxxx
+	reg.agc_ctrl2=0x22;		// 0xxxxxxx		//0x20 was used until V1.95, what did not work properly!
 							//  |||||||
 							//  |||||++- Enable reduced bandwidth AGC power detector. 0=2'nd order decimate-by-8 CIC; 1=1-tap comb added to CIC; 2=4-tap comb added to CIC
 							//  +++++--- Number of CK period delays needed to align DVGA gain step with the digital gain compensation step. Set this register to 7 if xASTROBE and xBSTROBE are not used. Otherwise set to 8
