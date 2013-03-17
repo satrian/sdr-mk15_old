@@ -357,6 +357,27 @@
     <Compile Include="uIP\drivers\interfaces\network.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="uIP\drivers\ksz8851\avrlibdefs.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\avrlibtypes.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\global.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\ksz8851.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\ksz8851.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\ksz8851conf.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\network.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="uIP\global-conf.h">
       <SubType>compile</SubType>
     </Compile>
@@ -1161,6 +1182,7 @@
     <Folder Include="uIP\doc\html\" />
     <Folder Include="uIP\drivers\" />
     <Folder Include="uIP\drivers\interfaces\" />
+    <Folder Include="uIP\drivers\ksz8851" />
     <Folder Include="uIP\libs\" />
     <Folder Include="uIP\libs\memb\" />
     <Folder Include="uIP\libs\net_conf\" />

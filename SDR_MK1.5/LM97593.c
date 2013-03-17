@@ -160,8 +160,15 @@ int16_t _F2_TABLE_SDR[32] = {10,2,-10,-3,1,-5,5,20,0,-27,-10,11,-3,13,48,-10,-96
 //						6494,6913,7056};
 
 
-int8_t _AGC_TABLE[32] =	{-102, -102, -88, -80, -75, -70, -66, -63, -61, -56, -53, -50, -47, -42, -39, -36, -33, -29, -25,	// 6dB below full scale, deadband 8dB, loop gain 0.108. See datasheet pg.42
-						 -22, -19, -15, -11, -0, 0, 0, 0, 0, 0, 13, 17, 20};
+//int8_t _AGC_TABLE[32] =	{-102, -102, -88, -80, -75, -70, -66, -63, -61, -56, -53, -50, -47, -42, -39, -36, -33, -29, -25,	// 6dB below full scale, deadband 8dB, loop gain 0.108. See datasheet pg.42
+//						 -22, -19, -15, -11, -0, 0, 0, 0, 0, 0, 13, 17, 20};
+
+// test table
+//int8_t _AGC_TABLE[32] =	{-102, -102, -88, -80, -75, -70, -66, -63, -61, -56, -53, -50, -47, -42, -39, -36, -33, -29, -25,
+//						 -22, -19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20};
+
+#define AGC_SHIFT	(2<<4)
+int8_t _AGC_TABLE[32] =	{-85,-85,-74,-67,-63,-59,-56,-54,-52,-48,-45,-43,-41,-37,-34,-32,-29,-26,-23,-20,-18,-15,-12,0/*-9*/,0,0,0,0,0,0,0/*11*/,13};
 
 void AssertSI(void)
 {
@@ -403,7 +410,7 @@ int16_t i;
 
 	full=1;
 	full<<=32;		//2^32
-	
+
 	freq=0-_freq;
 	freqval=(full*freq/clockfreq);
 
@@ -665,7 +672,7 @@ uint64_t cicgain;
 								//						1=round serial and parallel to 16 bits, all others set to 0
 								//						2=round serial and parallel to 24 bits, all others set to 0
 								//						3=output floating point. 8-bit mantissa, 4-bit exponent. All other bits are set to 0
-								
+
 	if (channelmode == SINGLE_CHANNEL)
 		reg.serial_ctrl&=~0x10;	// set to single-channel mode
 
@@ -688,7 +695,8 @@ if (freqandphase)
 							//     ||++- A_SOURCE 0=AIN as channel A input source 1=BIN 2=3=select TEST_REG as channel input source
 							//     ++--- B_SOURCE 0=AIN as channel B input source 1=BIN 2=3=select TEST_REG as channel input source
 
-	reg.agc_ctrl=1;			// 00xxx01x
+	//reg.agc_ctrl=1;			// 00xxx01x
+	reg.agc_ctrl=0x0|AGC_SHIFT;		// 00xxx01x
 							//   ||||||
 							//   |||||+- EXP_INH 0=allow exponent to pass into FLOAT TO FIXED converter 1=Force exponent in DDC channel to a 7 (max digital gain)
 							//   |||++-- Reserved, do not use
