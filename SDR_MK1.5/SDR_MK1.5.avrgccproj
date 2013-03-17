@@ -354,6 +354,9 @@
     <Compile Include="uIP\doc\uip-code-style.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="uIP\drivers\eth_spi.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="uIP\drivers\interfaces\network.h">
       <SubType>compile</SubType>
     </Compile>
