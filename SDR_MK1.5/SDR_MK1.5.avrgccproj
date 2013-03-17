@@ -276,6 +276,12 @@
     <Compile Include="cdce913_coeff.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="config\conf_clock.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="config\conf_spi_master.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="cycle_counter.h">
       <SubType>compile</SubType>
     </Compile>
@@ -1177,6 +1183,7 @@
     <Folder Include="asf\common\services\spi\uc3_spi\" />
     <Folder Include="asf\common\utils\" />
     <Folder Include="asf\common\utils\interrupt\" />
+    <Folder Include="config" />
     <Folder Include="uIP\" />
     <Folder Include="uIP\apps\" />
     <Folder Include="uIP\apps\dhcpc\" />
