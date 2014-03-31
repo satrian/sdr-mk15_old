@@ -144,6 +144,8 @@ extern volatile int32_t lastfreq_A;
 extern volatile int32_t lastfreq_B;
 extern volatile bool powered;
 
+uint32_t f_adc;
+
 unsigned char ReadRegister(unsigned char regno);
 void WriteRegister(unsigned char regno, unsigned char regval);
 void AssertSI(void);

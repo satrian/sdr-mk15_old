@@ -21,6 +21,192 @@ You have to, however, ask for permission if you are planning to use the material
 inherited works commercially.
 
 */
+/*
+
+ Revisions:
+
+	v0.7b				-	Initial revision
+
+	v1.0	13.06.2011	-	Data capture IRQ vector completly rewritten in assembler
+						- 	Diversity mode support added
+						-	Corrected FIR filter tables to prevent bleeding on waterfall edges
+							(narrowed from 0.2375 bandwidth to 0.2175)
+							[well, actally a standard table is used for production now]
+						-	FIR filter tables are now gain-normalized to G=1.0 (was seriously overgain, G=2.3-2.3 earlier)
+						-	Added 1/16 FIR tables to support 12kHz second channel when CH A is runing on 48kHz
+						-	12kHz CH B is now working
+						-	Added manual gain control option (agc, rfga, rfgb commands)
+						-	ch a and b software gain control is now separated (attn! Exponent bit is common for both channels)
+						-	Added command 'compressor', what fixes the exponent and sets gain to 1 (default is compressor off, gain fixed to 4)iqpktsize
+
+
+	v1.1	28.06.2011	-	Audio type changed from type 0x5 to 0x1 (no sync) to get rid of sample skipping artifacts
+						-	Fixed ugly bug with audio data endian. Noise floor is now below -70dB, AGC works.
+							(There is still an artifact in audio above 10kHz what has to be figured out, although it is not audible)
+
+=====================================================
+
+	V1.5	06.09.2011	-	First cut for 32UC3B0256 running on EVK1101 (Direct port from V1.1) (not really doing anything useful other than compiles)
+	V1.51	22.11.2011	-	Fixed LUFA bug, so CDC driver now works on 0256 chip
+	V1.52	25.11.2011	-	Port to 0512 chip (First MK1.5 assembled! (Its 2.51 am :) ))
+	V1.53	14.12.2011	-	(Entry added later 18.dec.2011)
+						-	Microchip Ethernet (tuxgraphics) replaced with uIP, 100Base ethernet now works!
+						-	All features on board tested, everything seems to work. Interrups are, however, too undeterministic to allow serial rates of F_ADC/2 (only /4 works (reg 5 3))
+						-	Lot of minor fixes and tweaks. Still nothing more than answers to ping and transmits audio on single channel, but what works, works solid (except the routine ping miss after every minute)
+	V1.54	19.12.2011	-	SSC data transfer is once again re-written and is DMA-based now.
+	V1.55	21.01.2012	-	Added UDP support
+						-	Started to clean up source code and splitting functionality between NetSDR.c, SDR-IQ.c and LM97593.c
+						-	Descriptors_audio.c renamed to Descriptors.c
+	V1.56	05.03.2012	-	Branched to new LUFA codebase (LUFA120219), removed all sorts of hooks to be compatible with "straight out of the box" LUFA
+	V1.57	18.03.2012	-	Ugly bug in USB descriptor table finally found what prevented second audio card to work (Audio2_AudioFormatSampleRates missed '2' in a name ..). Works now (took 3 months and 4 days!!!)!!
+						-	Removed USB audio sample rate control features for time being (USB attribute AUDIO_EP_SAMPLE_FREQ_CONTROL) to be on a safe side with Linux and MAC
+
+	V1.57a	16.09.2012	-	Bulk data transfer finally works as supposed to after a lot of setbacks. Took a libusb to implement that and had to totally rework the transfer routine.
+							The gain is 7.57Mbit/s steady maximum transfer rate. Still, there are frame synchronization problems what cause channels and I/Q to swap unexpectedly from time to time.
+
+	// NB! 1.58 is the minimum version to be working with ExtIO DLL current release!
+	V1.58	17.09.2012	-	Fixed the I/Q alignment issues, hopefully for good! (was SSC interface problem - had to be reset instead of just disabling and re-enabling)
+						-	Added phase, gain and firmware version checks USB control messages
+						-	SSC interrupt now deprecated
+						-	LIBUSB_GETSYNC control message deprecated (was not used anywhere anyway)
+						!	Diversity mode hooks missing for libusb mode
+	V1.59	17.09.2012	-	Cleaned the correctionoffset hooks from firmware as redundant. Data rate is back on 7.57Mbit/s now.
+						-	Fixed F_ADC frequencies for audio frequencies (calculation logic was erratic before, see SampleMode() comments)
+
+	// =================
+	// NB! 1.70 is the minimum version to be working with current ExtIO DLL release!
+	// (Hopefully this is the last time when backward compatibility gets destroyed!)
+
+	V1.70	20.09.2012	-	Redefined LIBMODE_xxxx flags to different values to match radio button states
+	V1.71	23.09.2012	-	Added ResyncSI() function (a rework of SampleMode() code)
+						-	Phase change is now followed by ResyncSI()
+						-	Gain and Diversity stuff now works for libusb mode
+
+	V1.80	29.10.2012	-	Networking mode works with CuteSDR! No network setup tho.
+	V1.81	30.10.2012	-	Fixed bug what caused cutesdr to start up with wrong LO frequency at SDR side (frequency was not recalculated after sample rate change)
+	V1.82	31.10.2012	-	Implemented UDP broadcast discover request response
+	V1.83	08.11.2012	-	Added 256-byte NVRAM flash area at the end of flash (also updated linker relocation at avr32elf_uc3b0512.x acordingly)
+						-	"nvram" command added to terminal for dumping NVRAM content
+						-	Message() now calls CDC tasks to prevent data loss on long loops calling it
+						-	Added commands dhcp {1|0}, ip {ipaddr}, gw {gateway}, netmask {netmask} and ipconfig
+						-	tcpip config is now nvram-based
+	V1.84	10.11.2012	-	UDP outbound setup is now dynamic (either uses ripaddress or address configured by control message 0xC5)
+						-	DHCP works!
+						-	Added unique serial number generation from CPU ID
+						-	Endian swapping for UDP packets moved to background of SPI DMA transfer (ksz8851 has now non-blocking DMA packet transfer capability)
+	V1.85	11.11.2012	-	Reworked SSC transfer engine to always use byte transfers (to simplify transitions between 16 and 24-bit modes for network)
+						-	24-bit mode is temporarily deprecated for audio and libusb modes (to be supported by network mode first)
+						-	Added dynamic CDCE913 frequency calculation for SetADCClock() (were using pre-defined values and fixed tables before)
+						-	Added command 'clock' to display current settings for CDCE913 chip
+
+	V1.86	12.11.2012	-	Added default sample rate 196078 Hz for network modes to fix the cutesdr startup problem if no netsdr registry patch is applied
+							(cutesdr does not set SDR sample rate for non-netsdr radios in some reason)
+
+	V1.87	13.11.2012	-	Implemented netsdr control message 0xC4 and added MK1.5 specific data mode 0x80 (large packet, big endian mode)
+	v1.88	14.11.2012	-	Implemented RF gain control message 0x38 for NetSDR protocol
+						-	Shell commands gain control logic revisited
+	v1.89	18.11.2012	-	Fixed a bug where non-blocking network transfers did not wait for completion and sometimes were colliding with next packet
+						-	added terminal command 'netiqdump'
+						-	Unhandled NetSDR control messages are now NAK-ed
+	v1.90	20.11.2012	-	Fixed NetSDR data packet header bug (packet length was patched in wrong)
+						!	NetSDR protocol 24-bit data works, but is turned off to save bandwidth (was not really giving much advantage!)
+	v1.91	21.11.2012	-	Fixed ugly bug with UDP packet formation, what caused the first 20 bytes of I/Q data being incorrect
+
+	v1.92	29.11.2012	-	Removed AssertSI() hooks from LM97593 WriteRegister(), since this was messing up I/Q sync on fast data rates
+	v1.93	28.12.2012	-	Preliminary release for panadapter support
+
+	v1.94	30.12.2012	-	Fixed bug in panadapter step scanning initialization (new panentry did not zero step counter)
+						-	Fixed bug where data area for panadapter samples header was transmitted by USB before the header was actually patched in
+	v1.95	04.01.2013	-	Added skip counter for panentry structure
+	v1.96	07.03.2013	-	Changed AGC_COMB_ORD from 0 (2'nd order decimate-by8 CIC) to 2 (4-tap comb added to CIC) in order to fix the problem where
+							6dB region from top of all AGC ranges was causing DRC to go clipping
+	v1.97	08.03.2013	-	Changed AGC coefficients table to further fight the clipping zone at some antenna levels.
+
+	v1.98	10.07.2013	-	Minor tweaks and code restructuring
+						-	Preliminary support for TX8M card hardware
+						-	Added ChA=I ChB=Q data mode for TX8M downconverter support
+						-	Preliminary HMATRIX memory bus arbitration code for better sample latency (InitHMatrix())
+						
+	v1.99a	22.08.2013	-	Deprecated CHMODE_16AB mode (and fixed the TX8M IQ mode sample rate bug), since this was inconsistent with current ExtIO DLL 
+							radio buttons layout. Will be brought back with updated value when AB mode is implemented somewhere.
+							
+	v1.99b	17.11.2013	-	Fixed SetPhase() function by restoring SI toggle. Diversity modes now work again! (have been apparently broken since v1.92 ..)
+							Also fixes the TX8M IQ data mirrors.
+							
+	v1.99c	11.12.2013	-	Removed redundant WriteRegister_Fast() and SetFreq_Fast() functionality
+						-	Added InitIQDataEngine(0,0, 1) to places where resyncing phase could be important during frequency tuning
+						
+	v1.99d	15.01.2014	-	TX8M SPI busmaster functionality added to NetSDR.c (not configurable yet)						
+						
+	v1.99e	29.01.2014	-	Added console command "datamode"
+						-	Re-Enabled 24-bit network data (USE_24BITNET directive at NetSDR.c)
+						-	Experimental. RF gain control block in NetSDR.c
+						
+	v1.99f	30.01.2014	-	Experimental gain control revisited (added IF gain proportional to RF gain reduction)
+						-	24-bit data still enabled.
+						
+	v1.99g	1.02.2014	-	Adder IQ data throttling for TX8M receive (TWI 3B reg 5)
+						-	_0DB_GAIN value changed from 8 to 7
+						-	Removed ASF TWI branch from solution (was not used in make) 
+						-	TWI.C routines speed up
+							
+							
+	ToDo:
+	
+		- Re-enable 24-bit data over network
+		- Enable floating point mode for HDSDR ExtIO DLL
+		- Allow programmable AGC EXT_DELAY and AGC_COMB_ORD registers for ExtIO debugging
+		- Allow loading AGC tables and AGC_LOOP_GAIN over ExtIO (make editor on separate window!)
+		- Manual RF gain (and AGC on/off) over ExtIO and NetSDR (AGC_HOLD_IC to 0, then program gains for AGC_IC_A and AGC_IC_B, then set AGC_HOLD_IC to 1)
+		- Make phase dithering as a configurable option on screen, default on for everything else than TX8M 
+		* WriteRegister_Fast() and SetFreq_Fast() are redundant functions and have to be deprecated, since we do not access SI signal any more in any of these
+		- InitIQDataEngine(0,0,1) is at the moment syncing phase only for diversity modes and TX8M (LIBUSB_16IABQ). Must add special checkbox for 
+		  ExtIO DLL, so "forced sync" could be used for normal LIBUSB_16AB mode
+		- rework globals to single files and include
+		- rework includes to have #ifdef _include_, so they can be recursively used
+		- consolidate include files to one?
+		* SSC Frame syncing
+		- VFO A/B callback (not yet implemented inside HDSDR either ...)
+		* Synchronous tuning (ExtIO DLL change)
+		* Clean help
+		- Commands to case-insensitive (write generic parser)
+		* manual gain control
+		* Diversity Mode to finish
+		* Diversity mode for libusb mode
+		- Clean up source for publishing
+		* separate ch a and ch b gain software gain control and add 'exp' command for forcing max gain through exponent
+		? Figure out, why (or if) there is an intermodulation in 10kHz+ sinewawe
+		x Implement sample rate feedback
+		x Implement audio data capture and control through CDC device (SDR-IQ and ExtIO DLL compatible)
+		- Finish SDR-IQ compatible protocol (or deprecate officially?)
+		* SampleMode() shall recalculate clock synthesizer to find best match for any given sample frequency
+		* DHCP
+		* NetSDR UDP broadcast discovery of radio
+		- Connection dropping/cleanup if host is gone
+		? Init_SSC() gets wrong frame length somewhere (garbage, actually!) during the init. This is likely because memory is overwritten somewhere,
+		  but has to be tracked down (EDIT: This part of the code was replaced and it seems that thee are no more problems, but no bug was found either!)
+		* When first started, cutesdr selects frequency which is slightly off
+		x SDR-IQ and SDR-14 sample frequency setup (works now, because all sample rates are dynamically calculated now)
+		- MK1.5 specific udp packet mode (8k and reverse endian)
+		- Wideband scan mode
+		- 24-bit network modes support
+		- Dual channel network modes
+		! UDP packet source port is ignored at the moment (see uip.c line 1187), since we keep getting our DHCP response from DHCP server port 676 rahther than 67
+		  This may be either a endianness bug somewhere or something else, but for time being we do not check source port addresses for UDP connections.
+		! DHCP lease renews itself every 5 minutes. This is no good, but as a workaround, the ip address nullification is disabled, so the lease is likely going to be rnewed to a same address.
+		  Works as a workaround for time being, but has to be reworked.
+		- IPv6 support (far in the future ..)
+		- NetSDR small and MK1.5 XLarge packet length support
+		- Radio ID and random session token (generated from rx I/Q signal) based Network configuration through UDP broadcast message
+		! F_ADC/2 SSC data rate is not working, even if clock is below 58MHz
+		- Fix help
+		- sdr-radio gain at startup behaves strange
+		- Implement TCPIP connections dropping, so each time new connection comes in, old one will be termineted (two sockets, one is always waiting)
+		- Implement function to change ADC clock frequency skew (user can smoothly select suprs vs. noise balance)
+		- Set TX8M IF frequency to fixed value
+		* there are currently two TWI.* files includes (one from main, one feom AFS drivers). Rename main branch to something else.
+ */
+
 
 // This is from ASF package. Include this first, so we can undef the LUFA-incompatible macros
 #include "compiler.h"
@@ -75,6 +261,8 @@ ISR(USB_GEN_vect);
 #include "LM97593.h"
 
 #include "cdce913_coeff.h"
+
+#include "tx8m.h"
 
 #include <string.h>
 #include <stdarg.h>
@@ -158,7 +346,7 @@ USB_ClassInfo_CDC_Device_t VirtualSerial2_CDC_Interface =
 void Message(int16_t cdc, char* outstring, ...)
 {
 va_list argptr;
-char lineout[128];		// not safe, but we are embedded, so there is a little chance anyone is going to hack us this way ..
+char lineout[256];		// not safe, but we are embedded, so there is a little chance anyone is going to hack us this way ..
 uint8_t PrevEndpoint;
 static uint16_t bytesgiven=0;
 
@@ -174,7 +362,7 @@ static uint16_t bytesgiven=0;
 
 		CDC_Device_SendString(&VirtualSerial1_CDC_Interface, lineout/*, strlen(lineout)*/);
 
-		// do CDC interface tasks, so we will not loose data on case of long messages (in some reason Hercules still looses symbols if the queue is longer than 20 bytes!)
+		// do CDC interface tasks, so we will not loose data on case of long messages (in some reason Hercules still looses symbols sometimes if the queue is longer than 20 bytes!)
 		if (bytesgiven > 20)
 		{
 			CDC_Device_USBTask(&VirtualSerial1_CDC_Interface);
@@ -211,6 +399,7 @@ int16_t fixedgain_A=6, fixedgain_B=6;					// used just for displaying
 uint16_t plen;
 
 uint8_t datamode = DATA_AUDIO;					// default to audio interface
+uint16_t bytesperframe = 0;;
 
 uint16_t panadapter = 0;						// will be set to LIBMODE_16ABPAN or LIBMODE_16BAPAN in case panadapter is enabled
 uint16_t panentries = 0;						// number of entries (PANENTRY) on panoramic scan table
@@ -248,6 +437,8 @@ extern uint16_t NetDataLen;					// indicates, how much data in network mode SSC 
 extern uint16_t NetDataLenHalfwords;		// indicates, how much data in network mode SSC will fetch us for one buffer (used because we need it inside IRQ and do not have to divide by two each time)
 
 extern uint8_t ReverseEndian;				// indicates if IQ data endian has to be swaooed at NetSDR_Task()
+
+uint16_t libmode=-1;
 
 uint16_t BitDepth = AUDIOBITS;							// 16 or 24, dependent on configuration, but start with 16-bit to be compatible with audio
 
@@ -419,16 +610,8 @@ static const gpio_map_t TWI_GPIO_MAP =
 // The one supplied with the ASF as spi master example does not seem to work at all
 //
 
-static const gpio_map_t ETH_SPI_GPIO_MAP =
-{
-	{ETH_SPI_SCK_PIN,          ETH_SPI_SCK_FUNCTION         },  // SPI Clock.
-	{ETH_SPI_MISO_PIN,         ETH_SPI_MISO_FUNCTION        },  // MISO.
-	{ETH_SPI_MOSI_PIN,         ETH_SPI_MOSI_FUNCTION        },  // MOSI.
-	{ETH_SPI_NPCS_PIN,		   ETH_SPI_NPCS_FUNCTION		}	// Chip Select NPCS0
-};
 
-
-static spi_options_t spiOptions =
+/*static*/ spi_options_t spiOptions =
 {
 	.reg          = 0,	// 2 for CS2 does not make any sense, but works! //SPI to setup, so 0 for SPI0, 1 for SPI1 etc..
 	.baudrate     = SPI_ETH_BAUDRATE,		//Be aware, if this is too high or too low the compiler won't complain, many SPI functions will run without failing, even though the SPI is not working.
@@ -450,28 +633,30 @@ uint32_t freqdiff;
 
 	retval=0;
 
+	// byte read/write, not block operation, so rise the first bit for each command byte!
+
 	//Config Registers, common
 	//twi_write(0, 0x1); do not overwrite
 	//twi_write(1, 0); do not overwrite -- eeprom lock bit is here!
-	twi_write(2, 0xB4);
-	twi_write(4, 0x2);
+	twi_write(0x65, 2|0x80, 0xB4);
+	twi_write(0x65, 4|0x80, 0x2);
 	//twi_write(5, 12<<2); already set
 	//twi_write(6, 0x40); eeprom write
 
 	// PLL registers, common
-	twi_write(16, 0);		//x10
-	twi_write(17, 0);		//x11
-	twi_write(18, 0);		//x12
-	twi_write(19, 0);		//x13
-	twi_write(20, 0x4D);	//x14
-	twi_write(21, 0x2);		//x15
-	twi_write(22, 0);		//x16
-	twi_write(23, 0);		//x17
+	twi_write(0x65, 16|0x80, 0);		//x10
+	twi_write(0x65, 17|0x80, 0);		//x11
+	twi_write(0x65, 18|0x80, 0);		//x12
+	twi_write(0x65, 19|0x80, 0);		//x13
+	twi_write(0x65, 20|0x80, 0x4D);	//x14
+	twi_write(0x65, 21|0x80, 0); //use 0x2); for enabling Y3		//x15
+	twi_write(0x65, 22|0x80, 0);		//x16
+	twi_write(0x65, 23|0x80, 0);		//x17
 
-	twi_write(28, 0);		//x1C
-	twi_write(29, 0x40);	//x1D
-	twi_write(30, 0x2);		//x1E
-	twi_write(31, 0x8);		//x1F
+	twi_write(0x65, 28|0x80, 0);		//x1C
+	twi_write(0x65, 29|0x80, 0x40);	//x1D
+	twi_write(0x65, 30|0x80, 0x2);		//x1E
+	twi_write(0x65, 31|0x80, 0x8);		//x1F
 
 	// Fvco can be only in a range between 80 and 230MHz. Therefore we can not always use output divider 1, but have to find the divider what will
 	// put the Fvco in one of the correct ranges: 0: 80MHz >= Fvco < 125MHz; 1: 125MHz <= Fvco < 150MHz; 2: 150MHz <= Fvco < 175MHz; 3: 175MHz <= Fvco < 230MHz;
@@ -492,16 +677,39 @@ uint32_t freqdiff;
 	real_f_adc/=f_adc_divider;
 
 	//Config Registers
-	twi_write(3, f_adc_divider);
+	twi_write(0x65, 3|0x80, f_adc_divider);
 	// PLL registers
-	twi_write(24, pllconf.darr[0]);	//x18
-	twi_write(25, pllconf.darr[1]);	//x19
-	twi_write(26, pllconf.darr[2]);	//x1A
-	twi_write(27, pllconf.darr[3]);	//x1B
+	twi_write(0x65, 24|0x80, pllconf.darr[0]);	//x18
+	twi_write(0x65, 25|0x80, pllconf.darr[1]);	//x19
+	twi_write(0x65, 26|0x80, pllconf.darr[2]);	//x1A
+	twi_write(0x65, 27|0x80, pllconf.darr[3]);	//x1B
 
 	f_adc=adcclock;
 
 	return 1;
+}
+
+/*
+Blink LED for error code three times
+*/
+
+void errcode (uint16_t ecode)
+{
+int i, j;
+
+	for (j=0; j<3; j++)
+	{
+		gpio_clr_gpio_pin(LED);
+		delayms(1000);
+
+		for (i=0; i<ecode; i++)
+		{
+			gpio_set_gpio_pin(LED);
+			delayms(200);
+			gpio_clr_gpio_pin(LED);
+			delayms(300);
+		}
+	}
 }
 
 #define OSC0_STARTUP    AVR32_PM_OSCCTRL0_STARTUP_2048_RCOSC  //!< Osc0 startup time: RCOsc periods.
@@ -514,8 +722,16 @@ static pcl_freq_param_t pcl_freq_param =
 	.osc0_startup=OSC0_STARTUP
 };
 
+
+uint8_t spimemid[20];
+
+uint32_t fpgabytesloaded=0;
+uint32_t lastfpgabytes=0xFFFFFFFF;
+
 int16_t SetupHardware(void)
 {
+int i;
+
 	//for early versions, we had CPClare solid state relay on board. The idea was to allow board come up in minimalist power mode and then
 	//gradually power it up. However, this was not really making any sense, as there was so much power leaking through all the clamping
 	//diodes, that the relay was more or less selecting between a full power and brown-out region, not on and off. Therefore, for new
@@ -568,7 +784,7 @@ int16_t SetupHardware(void)
 	// Program the clock synth as first thing after power-up to avoid running LM97593 without clock after reset.
 	// We should be done before the LM97593 chip comes out of reset
 
-	twi_write(5, 11<<2);		// set crystal loading capacitor value
+	twi_write(0x65, 5|0x80, 11<<2);		// set crystal loading capacitor value. Highest bit of the command byte rised to indicate byte operation
 	//twi_write(5, 0);
 	//twi_write(1, 0x9);				// set external LVCMOS clock as input. ATTN!!!! Do not touch bit 5, as this will permanently lock the EEPROM config!
 
@@ -599,9 +815,201 @@ int16_t SetupHardware(void)
 	spi_selectionMode(ETH_SPI, 0, 0, 0);
 	spi_enable(ETH_SPI);
 
-	//enc28j60Init(mymac);
+#if (TX8M == 1)
 
-	//webservertest();
+	//Init I2C expander and set pins to default state
+	expander_init();
+
+	//TX8M pins setup for Extension connector
+	//Wideband Signal Synthesizer pins
+
+	//PA04	GPIO4		WSS_CLK
+	//PA03	GPIO3		WSS_DIN
+	//TMS	GPIO2		WSS_LDEN
+	//TDO	GPIO1		WSS_CE
+	//TDI	GPIO0		WSS_LOCK
+
+	gpio_clr_gpio_pin(WSS_CLK);
+	gpio_clr_gpio_pin(WSS_DIN);
+	gpio_clr_gpio_pin(WSS_LDEN);
+	gpio_clr_gpio_pin(WSS_CE);
+	gpio_configure_pin(WSS_LOCK, GPIO_DIR_INPUT);
+
+	WSS_Init();
+	WSS_SetFreq(543210000);			// just a nice number
+	cpu_delay_ms(200, F_CPU);		// wait for lock
+
+	//WSS_SetFreq(35000000);		//test lower limit lock
+	//WSS_SetFreq(4400000000);		//test higher limit lock
+
+	// Other pins
+
+	//PB05	PB5			XILINX_SPICS
+	//PA20	UART1_CLK	RELAYS			//!!! multiplexed with DRC DATA?!
+	//PB03	UART1_RXD	UART_RXD
+	//PB02	UART1_TXD	UART_TXD
+	//PB04	UART1_CTS	EXCIQTHROTTLE
+
+	//
+	gpio_configure_pin(EXC_IQTHROTTLE, GPIO_DIR_INPUT);
+	gpio_set_gpio_pin(XILINX_SPICS&0xFF);
+
+	FLT_SetFreq(30000000, FLT_HIGHPASS|FLT_LOWPASS);		// set both filters to 30MHz
+
+	//See, if the SPI memory is online
+	for (i=0; i<20; i++)
+		spimemid[i]=0;
+
+	spimem_rdid(20, &spimemid);
+
+	//Set MCP4716 DAC to full value output
+
+	{
+	uint16_t dacvalue;
+	uint8_t dacbuff[2];
+
+		dacvalue=0x3FF;				// (3FF is full 10-bit)
+
+		dacvalue<<=2;				// MCP4716 dac bits are 0 0 PD1 PD0 d9 d8 d7 d6 | d5 d4 d3 d2 d1 d0 xx xx
+		dacbuff[0]=dacvalue>>8;
+		dacbuff[1]=dacvalue&0xFF;
+
+		//dacbuff[0] higher 4 bits contain command and power down bits. For generic nvram update, these bits are all 0
+
+		twi_write_blk(0x60, 0, 0, 2, dacbuff);
+	}
+
+	/*SPI eeprom loading test
+	expander_clr(FPGAM1|FPGAM2);		// SPI EEPROM mode
+	//If started in SPI eeprom mode, switch processor SPI clock output as input, otherwise
+	//xilinx clock and processor SPI clock will be fighting each-other
+	gpio_configure_pin(ETH_SPI_SCK_PIN, GPIO_DIR_INPUT);
+	*/
+
+	/* cleanup after Xilinx SPI eeprom testing
+	expander_set(FPGAPROGB);
+	cpu_delay_ms(100, F_CPU);
+	expander_clr(FPGAPROGB);
+	// Assign I/Os back to SPI.
+	gpio_enable_module(ETH_SPI_GPIO_MAP, sizeof(ETH_SPI_GPIO_MAP) / sizeof(ETH_SPI_GPIO_MAP[0]));
+	*/
+
+	// Program FPGA through SPI interface (helps for time being while FPGA code still fits inside the AT32UC3B0512 internal flash
+	{
+	uint32_t k, bitstreamsize, j, l;
+	uint8_t swapped;
+
+		expander_clr(FPGAPROGB);			// Should be already low anyway by expander_init()
+		expander_set(FPGAM1|FPGAM2);		// Set slave serial mode
+
+		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		// Because we are using the SPI memory and serial slave configuration on the same SPI bus,
+		// the signal going to Xilinx DIN pin is SPI_MISO. While this is correct for SPI memory
+		// operation, it does not allow us to configure the xilinx from host directly using
+		// processor SPI interface. So we have to disconnect the processor SPi pins for a moment
+		// and do the data clocking ourselves.
+		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+		gpio_configure_pin(ETH_SPI_MISO_PIN, GPIO_DIR_OUTPUT);
+		gpio_configure_pin(ETH_SPI_SCK_PIN, GPIO_DIR_OUTPUT);
+		gpio_set_pin_low(ETH_SPI_MISO_PIN);
+		gpio_set_pin_low(ETH_SPI_SCK_PIN);
+
+		for (j=0; j<200; j++)				// wait for init to drop low
+		{
+			if (!expander_read(FPGAINIT))
+				break;
+			cpu_delay_ms(1, F_CPU);
+		}
+
+		if (expander_read(FPGAINIT))
+			errcode(1);
+
+		//scan for start
+		for (k=0, bitstreamsize=0; k<fpga_bitstream_size-1; k++)
+		{
+			if ((fpga_bitstream_start[k]==0xAA) && (fpga_bitstream_start[k+1]==0x99))
+			{
+				bitstreamsize=(fpga_bitstream_size-k);
+				break;
+			}
+		}
+
+		if (bitstreamsize)
+		{
+			// lets have a bitstream
+			expander_set(FPGAPROGB);		// start configuration
+
+			for (j=0; j<200; j++)
+			{
+				if (expander_read(FPGAINIT))
+					break;
+				cpu_delay_ms(1, F_CPU);
+			}
+
+			cpu_delay_ms(1, F_CPU);
+
+			if (expander_read(FPGAINIT))
+			{
+				for (j=0; j<32; j++)
+					xilinx_writecfgbyte(0xFF);					// feed blank
+/**/
+				for (j=0; j<bitstreamsize; j++, k++)
+				{
+					//if (!expander_read(FPGAINIT))			// cancel loading on error (timeconsuming ...)
+					//	break;
+					xilinx_writecfgbyte(fpga_bitstream_start[k]);
+					fpgabytesloaded++;
+					lastfpgabytes<<=8;
+					lastfpgabytes|=fpga_bitstream_start[k];
+				}
+
+				if (expander_read(FPGAINIT))				// still ok?
+				{
+					for (j=0; j<(128); j++)					// should be enough clocks ..
+					{
+						xilinx_writecfgbyte(0xFF);			// feed blank until FPGA has done what it has to do (according to XAPP502 pg.2)
+
+						if (expander_read(FPGADONE) || (!expander_read(FPGAINIT)))	// timeconsuming ...
+							break;
+					}
+
+					xilinx_writecfgbyte(0xFF);					// 8 additional clocks according to XAPP502 pg.2 (not likely neccessary in our case, but theoretically could be needed)
+
+					if (!expander_read(FPGADONE))
+						errcode(4);
+				}
+				else
+					errcode(3);
+/**/
+			}
+			else
+				errcode(2);
+		}
+
+		// Assign I/Os back to SPI.
+		gpio_enable_module(ETH_SPI_GPIO_MAP, sizeof(ETH_SPI_GPIO_MAP) / sizeof(ETH_SPI_GPIO_MAP[0]));
+	}
+
+	// Set up ADC 
+	twi_write(0x3B, 1, 0x9);	//00001000
+								//||||||||
+								//|||||||+-----	FPATH: 0=wide bandwidth, 1=low latency digital filter (must be 1 if DRATE 100 or 101 is used)
+								//||||||+------	SCK_SEL :Always set to 0 (internally generated clock)
+								//|||||+-------	XLVDS :Always set to 0, as we use LVDS interface
+								//||||+--------	LL_CONFIG :Low Latency digital filter configuration 0=single cycle, 1=Fast Response
+								//++++---------	Reserved
+								
+	twi_write(0x3B, 2, 0x1);	// Data rate (do not use higher rate than 011 as the bus speed of 100MHz is too fast for xilinx at the moment)
+	
+	// set start pin for 24-bit SDC converters for conversion process to start (debug only)
+	//twi_write(0x3B, 3, 0x5A);		//DEBUG ONLY -- FIX HIGH-ORDER BITS FOR I AND Q DATA SPI TRANSFERS
+	
+	twi_write(0x3B, 0, 0x0);	// clear START bit, keep both shipselects low
+	cpu_delay_us(1000, F_CPU);
+	twi_write(0x3B, 0, 0x1);	// assert START bit to get 0->1 transition, keep both shipselects low
+
+#endif
 
 	return(0);
 }
@@ -773,7 +1181,7 @@ volatile uint8_t ready2udp=0;
 
 // happens with every frame sync
 /*
-Deprecated, as syncing is now taken care ny SampleMode()
+Deprecated, as syncing is now taken care by SampleMode()
 
 ISR(ssc_int_handler)
 {
@@ -807,6 +1215,9 @@ ISR(pdca_int_handler_0)
 	// When TCR reaches zero, it will be reloaded with TCRV if TCRV has a positive value. If TCRV is zero, no more transfers
 	// will be performed for the channel. When TCR is reloaded, the TCRR register is cleared, so we have to reload it inside interrupt.
 	// Same applies to marr
+	
+	//If TCR is zero when writing to TCRR, the TCR and MAR are automatically updated with the
+	//value written in TCRR and MARR.
 
 	if (datamode == DATA_NETWORK)
 	{
@@ -848,15 +1259,17 @@ ISR(pdca_int_handler_0)
 	pdca_channel->isr;
 }
 
-void Init_SSC(uint16_t bytesperframe, int enablerx)
+void Init_SSC(uint16_t bpf, int enablerx)
 {
 	// Enable internal pullups for SSC signals
-	gpio_enable_pin_pull_up(AVR32_SSC_RX_DATA_0_0_PIN);
-	gpio_enable_pin_pull_up(AVR32_SSC_RX_CLOCK_0_0_PIN);
-	gpio_enable_pin_pull_up(AVR32_SSC_RX_FRAME_SYNC_0_0_PIN);
+	//gpio_enable_pin_pull_up(AVR32_SSC_RX_DATA_0_0_PIN);
+	//gpio_enable_pin_pull_up(AVR32_SSC_RX_CLOCK_0_0_PIN);
+	//gpio_enable_pin_pull_up(AVR32_SSC_RX_FRAME_SYNC_0_0_PIN);
 
 	// Assign GPIO to SSC.
 	gpio_enable_module(SSC_GPIO_MAP, sizeof(SSC_GPIO_MAP) / sizeof(SSC_GPIO_MAP[0]));
+	
+	bytesperframe=bpf;		//update global
 
 	// SSC init
 	//
@@ -910,7 +1323,7 @@ void Init_SSC(uint16_t bytesperframe, int enablerx)
 	//
 	//	(reg 5 1) (reg 5 3 when  working on cable)
 	//
-
+/*
 	// Perform reset
     ssc->cr = AVR32_SSC_CR_SWRST_MASK;
 	cpu_delay_us(100, F_CPU);
@@ -927,7 +1340,7 @@ void Init_SSC(uint16_t bytesperframe, int enablerx)
 				(AVR32_SSC_RCMR_CKO_INPUT_ONLY		<< AVR32_SSC_RCMR_CKO_OFFSET)			|	// clock is input-only
 				(0									<< AVR32_SSC_RCMR_CKI_OFFSET)			|	// FS and data is shifted out on clock rising edge and sampled on falling edge
 				(AVR32_SSC_RCMR_CKG_NONE			<< AVR32_SSC_RCMR_CKG_OFFSET)			|	// we do not generate RX clock ourselves, so do not care
-				(/*3*/4								<< AVR32_SSC_RCMR_START_OFFSET)			|	// start receiving frame on the  /*5=rising edge*/ /*3=high level*/ /*4=falling edge*/ /*2=low level*/ of the SFS signal (both, high level (3) and falling edge (4) seem to be ending up with correct timing)
+				(3									<< AVR32_SSC_RCMR_START_OFFSET)			|	// start receiving frame on the 5=rising edge 3=high level 4=falling edge 2=low level of the SFS signal. Both, high level (3) and falling edge (4) end up with correct timing, but high level gives more relaxed timing
 				(0									<< AVR32_SSC_RCMR_STTDLY_OFFSET)		|	// no receive start delay
 				(0									<< AVR32_SSC_RCMR_PERIOD_OFFSET));			// do not generate FS signals
 
@@ -936,7 +1349,7 @@ void Init_SSC(uint16_t bytesperframe, int enablerx)
                 ((bytesperframe - 1)				<< AVR32_SSC_RFMR_DATNB_OFFSET)         |	// number of symbols to clock in after FS activates the transfer. Could be just IA and QA or IA QA IB QB depending on mode. Also, depending on 16 or 24-bit mode, the frame lenght differs.
                 ((1 - 1)							<< AVR32_SSC_RFMR_FSLEN_OFFSET)			|	// FS is 1 SCK cycle
                 (AVR32_SSC_RFMR_FSOS_INPUT_ONLY     << AVR32_SSC_RFMR_FSOS_OFFSET)          |	// RX only, so no FS outputting
-                (0                                  << AVR32_SSC_RFMR_FSEDGE_OFFSET));			// SR.RXSYN interrupt on FS rising edge (0)
+                (0                                  << AVR32_SSC_RFMR_FSEDGE_OFFSET));			// SR.RXSYN interrupt on FS rising edge (0). We do not use rxsyn interrupt, so do not care.
 
 	ssc->idr=(unsigned long)0xFFFFFFFF;
 
@@ -948,35 +1361,53 @@ void Init_SSC(uint16_t bytesperframe, int enablerx)
 		ssc->cr = AVR32_SSC_CR_RXEN_MASK;
 	else
 		ssc->cr = AVR32_SSC_CR_RXDIS_MASK;
-}
-
-
-/*
-Blink LED for error code three times
 */
 
-void errcode (uint16_t ecode)
-{
-int i, j;
+	// Perform reset
+    ssc->cr = AVR32_SSC_CR_SWRST_MASK;
+	// disable	all
+	ssc->cr = AVR32_SSC_CR_RXDIS_MASK;
+	ssc->cr = AVR32_SSC_CR_TXDIS_MASK;
+	//cpu_delay_us(100, F_CPU);
 
-	for (j=0; j<3; j++)
-	{
-		gpio_clr_gpio_pin(LED);
-		delayms(1000);
+	// we will be running on RX_CLOCK, so internal clock generation is not really important.
+	ssc->cmr = AVR32_SSC_CMR_DIV_NOT_ACTIVE			<< AVR32_SSC_CMR_DIV_OFFSET;				// Maximum SSC bitrate is CLK_SSC/2, so use undivided clock. Gives us RX on F_ADC/2 rate from DRC chip
+    ssc->tcmr = 0;		// no TX setup
+    ssc->tfmr = 0;		// no TX setup
 
-		for (i=0; i<ecode; i++)
-		{
-			gpio_set_gpio_pin(LED);
-			delayms(200);
-			gpio_clr_gpio_pin(LED);
-			delayms(300);
-		}
-	}
+	// Normaly, there is at least 1 bit Receive Sync Data between frame sync and first bit received. We cant have this, so here is the sentence from datasheet what helps us out:
+	// "Concerning the Receive Frame Sync Data operation, if the Frame Sync Length is equal to or lower than the delay between the start event and the actual data reception,
+	// the data sampling operation is performed in the RSHR through the receive shift register."
+
+	ssc->rcmr =((AVR32_SSC_RCMR_CKS_RK_PIN			<< AVR32_SSC_RCMR_CKS_OFFSET)			|	// RX clock is taken from the RX_CLOCK
+				(AVR32_SSC_RCMR_CKO_INPUT_ONLY		<< AVR32_SSC_RCMR_CKO_OFFSET)			|	// clock is input-only
+				(0									<< AVR32_SSC_RCMR_CKI_OFFSET)			|	// FS and data is shifted out on clock rising edge and sampled on falling edge
+				(AVR32_SSC_RCMR_CKG_NONE			<< AVR32_SSC_RCMR_CKG_OFFSET)			|	// we do not generate RX clock ourselves, so do not care
+				(3									<< AVR32_SSC_RCMR_START_OFFSET)			|	// start receiving frame on the 5=rising edge 3=high level 4=falling edge 2=low level of the SFS signal. Both, high level (3) and falling edge (4) end up with correct timing, but high level gives more relaxed timing
+				(0									<< AVR32_SSC_RCMR_STTDLY_OFFSET)		|	// no receive start delay
+				(0									<< AVR32_SSC_RCMR_PERIOD_OFFSET));			// do not generate FS signals
+
+	ssc->rfmr =(((8 - 1)							<< AVR32_SSC_RFMR_DATLEN_OFFSET)        |	// word length in bits for each symbol to clock in.
+                (1                                  << AVR32_SSC_RFMR_MSBF_OFFSET)          |	// most significant bit first
+                ((bytesperframe - 1)				<< AVR32_SSC_RFMR_DATNB_OFFSET)         |	// number of symbols to clock in after FS activates the transfer. Could be just IA and QA or IA QA IB QB depending on mode. Also, depending on 16 or 24-bit mode, the frame lenght differs.
+                ((1 - 1)							<< AVR32_SSC_RFMR_FSLEN_OFFSET)			|	// FS is 1 SCK cycle
+                (AVR32_SSC_RFMR_FSOS_INPUT_ONLY     << AVR32_SSC_RFMR_FSOS_OFFSET)          |	// RX only, so no FS outputting
+                (0                                  << AVR32_SSC_RFMR_FSEDGE_OFFSET));			// SR.RXSYN interrupt on FS rising edge (0). We do not use rxsyn interrupt, so do not care.
+
+	ssc->idr=(unsigned long)0xFFFFFFFF;
+
+	//INTC_RegisterGroupHandler(INTC_IRQ_GROUP(AVR32_SSC_IRQ), AVR32_INTC_INT0, ssc_int_handler);
+	//ssc->ier=AVR32_SSC_IER_RXSYN_MASK;
+
+	// Enable receiver
+    if (enablerx)
+		ssc->cr = AVR32_SSC_CR_RXEN_MASK;
 }
+
 
 // Important piece of code. This will guarantee, that we are having I/Q alignment sync between radio chip and PDCA buffers.
 // Note, that one has to reset SSC interface completely, otherwise all weirdness breaks loose ...
-
+/*
 void InitIQDataEngine(uint16_t bytesperframe, uint16_t _ifcmode)
 {
 uint16_t ifcmode;
@@ -1035,6 +1466,154 @@ uint16_t ifcmode;
 	//ssc->cr=AVR32_SSC_CR_RXEN_MASK;
 	pdca_enable(PDCA_CHANNEL_0);
 	ssc->cr=AVR32_SSC_CR_RXEN_MASK;		// should not matter if this is before or after pdca enable, since SI is asserted anyway and data is not running
+	SetSI(1);
+}
+*/
+
+/*
+Origin from vInitHmatrix() code by danicampora
+http://www.avrfreaks.net/index.php?name=PNphpBB2&file=printview&t=100169&start=0
+*/
+
+static void InitHMatrix(void)
+{
+	// Config flash slave as last default master
+	volatile union
+	{
+		unsigned long                 scfg;
+		avr32_hmatrix_scfg_t          SCFG;
+
+	} u_avr32_hmatrix_scfg = {AVR32_HMATRIX.scfg[AVR32_HMATRIX_SLAVE_FLASH]};
+
+	u_avr32_hmatrix_scfg.SCFG.defmstr_type = AVR32_HMATRIX_DEFMSTR_TYPE_LAST_DEFAULT;
+	AVR32_HMATRIX.scfg[AVR32_HMATRIX_SLAVE_FLASH] = u_avr32_hmatrix_scfg.scfg;
+
+	// Config SRAM slave with the PDCA as the fixed master
+	volatile union
+	{
+		unsigned long                 scfg;
+		avr32_hmatrix_scfg_t          SCFG;
+
+	} u_avr32_hmatrix_scfg_sram = {AVR32_HMATRIX.scfg[AVR32_HMATRIX_SLAVE_SRAM]};
+
+	u_avr32_hmatrix_scfg_sram.SCFG.defmstr_type = AVR32_HMATRIX_DEFMSTR_TYPE_FIXED_DEFAULT;
+	u_avr32_hmatrix_scfg_sram.SCFG.arbt = AVR32_HMATRIX_ARBT_FIXED_PRIORITY;
+	u_avr32_hmatrix_scfg_sram.SCFG.fixed_defmstr = AVR32_HMATRIX_MASTER_PDCA;
+	AVR32_HMATRIX.scfg[AVR32_HMATRIX_SLAVE_SRAM] = u_avr32_hmatrix_scfg_sram.scfg;
+
+	// Give the PDCA the highest priority
+	avr32_hmatrix_pras_t avr32_hmatrix_pras_sram = AVR32_HMATRIX.prs[AVR32_HMATRIX_SLAVE_SRAM].PRAS;
+	avr32_hmatrix_pras_sram.m0pr = 2;
+	avr32_hmatrix_pras_sram.m1pr = 2;
+	avr32_hmatrix_pras_sram.m2pr = 2;
+	avr32_hmatrix_pras_sram.m3pr = 3;
+
+	AVR32_HMATRIX.prs[AVR32_HMATRIX_SLAVE_SRAM].PRAS = avr32_hmatrix_pras_sram;
+
+	// In order to avoid long slave handling during undefined length bursts (INCR), the Bus Matrix
+	// provides specific logic in order to re-arbitrate before the end of the INCR transfer.
+	//
+	// HSB Bus Matrix: By default the HSB bus matrix mode is in Undefined length burst type (INCR).
+	// Here we have to put in single access (the undefined length burst is treated as a succession of single
+	// accesses, allowing re-arbitration at each beat of the INCR burst.
+	// Refer to the HSB bus matrix section of the datasheet for more details.
+	//
+	// HSB Bus matrix register MCFG1 is associated with the CPU instruction master interface.
+	AVR32_HMATRIX.mcfg[1]=0x1;
+}
+
+void InitIQDataEngine(uint16_t _bpf, uint16_t _ifcmode, uint16_t resynconly)
+{
+uint16_t ifcmode;
+uint16_t bpf;
+
+	if (resynconly)
+	{
+		//only resync in modes where it matters, otherwise we have nasty artifacts on frequency change all the time
+		switch(libmode)
+		{
+		case LIBMODE_16AMB:
+		case LIBMODE_16APB:
+		case LIBMODE_16BMA:
+		case LIBMODE_16IAQB:
+			break;
+		
+		// network modes here
+		// case NETMODE_IAQB:
+		
+		default:
+			//do not resync for panadapters and modes where sync does not matter
+			return;	
+		}		
+	}
+
+	if (_ifcmode)
+		ifcmode=_ifcmode;
+	else
+		ifcmode=datamode;		// assume current mode, if not specifically set!
+		
+	if (_bpf)
+		bpf=_bpf;
+	else
+		bpf=bytesperframe;		// assume current mode, if not specifically set!
+		
+
+	// disable interrupt and let the pdca controller run to the end
+	pdca_disable_interrupt_reload_counter_zero(PDCA_CHANNEL_0);
+		
+	while(!(pdca_channel->isr&AVR32_PDCA_TRC_MASK))					// wait until all transfers are complete for buffer
+		{}
+
+	SetSI(0);
+	Init_SSC(bpf, 0);				// init, but keep disabled
+
+	
+	pdca_disable(PDCA_CHANNEL_0);
+			
+	// PDCA options will be reloaded at ISR() anyway, but just to make a reasonable code,
+	// we will initialize here as well.
+	if (ifcmode == DATA_NETWORK)
+	{
+		if (BitDepth == _16BIT)
+		{
+			NetDataLen=NETDATALEN16;
+			NetPktLen=NETPKTLEN16;
+			NetDataPackets=NETDATAPACKETS16;
+			NetDataLenHalfwords=NETDATALEN16/2;			// used at endian swapping
+		}
+		else
+		{
+			NetDataLen=NETDATALEN24;
+			NetPktLen=NETPKTLEN24;
+			NetDataPackets=NETDATAPACKETS24;
+			//NetDataLenHalfwords=NETDATALEN24/2;			// this variable is used at endian swapping for 16-bit mode only!
+		}
+
+		PDCA_OPTIONS.addr = (unsigned long)netdmabuffA;						// memory address
+		PDCA_OPTIONS.r_addr = (unsigned long)netdmabuffA;					// next memory address (use the same, so we do have a ring buffer)
+		PDCA_OPTIONS.size = NetDataLen;										// transfer counter
+		PDCA_OPTIONS.r_size = NetDataLen;									// next transfer counter
+	}
+	else
+	{
+		PDCA_OPTIONS.addr = (void *)dmabuff_1;						// memory address
+		PDCA_OPTIONS.r_addr = (void *)dmabuff_1;					// next memory address (use the same, so we do have a ring buffer)
+		PDCA_OPTIONS.size = (DMAMASK+1)*2;							// transfer counter
+		PDCA_OPTIONS.r_size = (DMAMASK+1)*2;						// next transfer counter
+	}
+
+	pdca_init_channel(PDCA_CHANNEL_0, &PDCA_OPTIONS);				// init PDCA channel with options.
+		
+	pdca_enable_interrupt_reload_counter_zero(PDCA_CHANNEL_0);
+
+	pdca_enable(PDCA_CHANNEL_0);
+
+	//InitHMatrix();
+
+	ssc->cr=AVR32_SSC_CR_RXEN_MASK;		// should not matter if this is before or after pdca enable, since SI is asserted anyway and data is not running
+
+	//all set, enable chip data now!
+
 	SetSI(1);
 }
 
@@ -1101,6 +1680,10 @@ uint32_t fadc;
 	fadc=(maxadcclock/(samplefreq*4));
 	fadc*=(samplefreq*4);
 
+	//if the F_ADC is exact multiple of sample frequency, we are getting low noise, but higher spurs. If we make it so that it will not divide with anything,
+	//the noise floor will be slightly elevated (3-4dB), but spurs are significantly lowered (10+dB)
+	//fadc-=12345;
+
 	SetADCClock(fadc);
 
 	oldsamplefreq=SampleRate;
@@ -1109,9 +1692,8 @@ uint32_t fadc;
 	BitDepth=numbits;
 
 	Init_LM97593(samplefreq, numbits, channels, false, f_adc);
-
 	UpdateRegisters(1);
-
+	
 	if (oldsamplefreq != SampleRate)
 	{
 		// new sample rate requires also frequency to be recalculated
@@ -1119,7 +1701,7 @@ uint32_t fadc;
 		SetFreq(CH_B, lastfreq_B, 1, f_adc);
 	}
 
-	InitIQDataEngine((2*numbits*channels)/8, ifcmode);
+	InitIQDataEngine((2*numbits*channels)/8, ifcmode, 0);	
 }
 
 void UpdateFlashCRC(void)
@@ -1273,6 +1855,7 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 	}
 
 	GlobalInterruptEnable();
+
 /*
 	// Initialize DMA now for transferring bytes automatically to memory
 	if (BitDepth == _16BIT)
@@ -1281,12 +1864,14 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 		PDCA_OPTIONS.transfer_size = PDCA_TRANSFER_SIZE_WORD;
 */
 	pdca_init_channel(PDCA_CHANNEL_0, &PDCA_OPTIONS); // init PDCA channel with options.
+	pdca_channel=pdca_get_handler(PDCA_CHANNEL_0);
+	pdca_channel->idr=0xFFFFFFFF;						// just in case disable all interrupts
 
 	INTC_RegisterGroupHandler(INTC_IRQ_GROUP(AVR32_PDCA_IRQ_0), AVR32_INTC_INT0, pdca_int_handler_0);
 	pdca_enable_interrupt_reload_counter_zero(PDCA_CHANNEL_0);
 
 	pdca_enable(PDCA_CHANNEL_0);
-	pdca_channel=pdca_get_handler(PDCA_CHANNEL_0);
+
 
 	// theoretically we shall be ok now!
 	StartRadio();
@@ -1349,8 +1934,8 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 				a=1;	// indicate that we are already trying external LVCMOS clock
 				i=0;	// reset loop counter
 
-				twi_write(1, 0x9);				// do not touch bit 5, as this will permanently lock the EEPROM config!
-				twi_write(5, 0);				// 0pF loading caps
+				twi_write(0x65, 1|0x80, 0x9);			// do not touch bit 5, as this will permanently lock the EEPROM config! Highest bit of the command byte rised to indicate byte operation
+				twi_write(0x65, 5|0x80, 0);				// 0pF loading caps
 				//wait for LM97593 to start up
 				delayms(10);
 
@@ -1362,7 +1947,7 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 				continue;
 			}
 
-			errcode(5);	// blink error code (3x5), do USB activities meanwhile
+			errcode(5);	// blink error code (3x5)
 			break;		// no luck, LM97593 chip is likely stalled :(
 		}
 	}
@@ -1387,7 +1972,7 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 	////
 
 	//set samplemode to I/Q sync once more, just in case
-	SampleMode(48000, DUAL_CHANNEL, _16BIT, 0);		// we are starting up in audio mode, so set sample mode appropriately. this function will also sync the PDCA buffers with SSC to get a grip on I/Q frame alignment
+	SampleMode(48000, DUAL_CHANNEL, _16BIT, 0);		// we are starting up in audio mode, so set sample mode appropriately as 48kHz. this function will also sync the PDCA buffers with SSC to get a grip on I/Q frame alignment
 
 	if (!pantable)
 	{
@@ -1423,11 +2008,13 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 			woffsetx=pdca_channel->mar;			// highwater mark - this is where the next data is placed into buffer
 			dmaoffset=woffsetx;					// make dmaoffset pointing the same address as woffsetx does
 
+			//woffsetx is the address of the last byte what could be transfered by USB from current buffer (transfer loop checks this)
+
 			woffsetx&=~(0x1FU);					// Eliminate partial transfers.
 												// The longest data to fetch is 4 I/Q sample pairs form channel B, what accounts alltogether 32 bytes (4 full I/Q A and B pairs), thus 1F.
 		}
 
-		if (datamode == DATA_LIBUSB)		// transfer data through bulk endpoint
+		if (datamode == DATA_LIBUSB)			// transfer data through bulk endpoint
 		{
 			// if we are in panadapter mode, go update scanner parameters according to table (datamode is DATA_LIBUSB, data is compatible with LIBMODE_16AB)
 			// (the same is theoretically applicable for network dual channel mode as well, but we are not supporting it at this moment)
@@ -1436,17 +2023,21 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 			{
 				panentry=pantable+(currentpanentry*sizeof(PANENTRY));			// point to the correct panentry record
 
-				//dmaoffset=pdca_channel->mar-(unsigned long)dmabuff_1;			// offset of the next write address inside the buffer
+				//was set above: dmaoffset=pdca_channel->mar;					// offset of the next write address inside the buffer
 				dmaoffset-=(unsigned long)dmabuff_1;
 				dmaoffset/=2;													// convert to words
-				dmaoffset&=~(3U);										// always point to IA
+				dmaoffset&=~(3U);												// always point to IA
 
 				if (last_dmaoffset < dmaoffset)
 					worddiff=dmaoffset-last_dmaoffset;
 				else
 					worddiff=dmaoffset+(DMAMASK+1)-last_dmaoffset;
+					
+#define TBLZONE (16)		//max alignment for patching header into I/Q words is 16 words
+#warning("------ ATTN! ------- Unexplained behavior below!")
+#define TBLEXTRA 8			//In whatever reason, this compensation is neccessary, otherwise the pan table header gets overwritten by sample data time to time
 
-				if ((worddiff >= (panentry->samples+16+panentry->skip)))	// at least requested sample count + 16 words to store magic info and frequency + skip area for frequency change
+				if ((worddiff >= (panentry->samples+TBLZONE+TBLEXTRA+panentry->skip)))	// at least requested sample count + 16 words to store magic info and frequency + skip area for frequency change
 				{
 					last_dmaoffset=dmaoffset;					// reset current pointer
 
@@ -1469,36 +2060,39 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 					if (panadapter == LIBMODE_16ABPAN)
 					{
 						// key in magic in current position for chB IQ data
-						dmabuff_1[(dmaoffset-16+2)&DMAMASK]=panentry->magic_I;
-						dmabuff_1[(dmaoffset-16+3)&DMAMASK]=panentry->magic_Q+1;
-						dmabuff_1[(dmaoffset-16+6)&DMAMASK]=panentry->magic_I+2;
-						dmabuff_1[(dmaoffset-16+7)&DMAMASK]=panentry->magic_Q+3;
+						dmabuff_1[(dmaoffset-TBLZONE+2)&DMAMASK]=panentry->magic_I;
+						dmabuff_1[(dmaoffset-TBLZONE+3)&DMAMASK]=panentry->magic_Q+1;
+						dmabuff_1[(dmaoffset-TBLZONE+6)&DMAMASK]=panentry->magic_I+2;
+						dmabuff_1[(dmaoffset-TBLZONE+7)&DMAMASK]=panentry->magic_Q+3;
 						// key in frequency
-						dmabuff_1[(dmaoffset-16+10)&DMAMASK]=panfreq&0xFFFF;
-						dmabuff_1[(dmaoffset-16+11)&DMAMASK]=(panfreq>>16)&0xFFFF;
+						dmabuff_1[(dmaoffset-TBLZONE+10)&DMAMASK]=panfreq&0xFFFF;
+						dmabuff_1[(dmaoffset-TBLZONE+11)&DMAMASK]=(panfreq>>16)&0xFFFF;
 						// key in trailer
-						dmabuff_1[(dmaoffset-16+14)&DMAMASK]=panentry->magic_I+4;
-						dmabuff_1[(dmaoffset-16+15)&DMAMASK]=panentry->magic_Q+5;
+						dmabuff_1[(dmaoffset-TBLZONE+14)&DMAMASK]=panentry->magic_I+4;
+						dmabuff_1[(dmaoffset-TBLZONE+15)&DMAMASK]=panentry->magic_Q+5;
 
 						// channel A is IQ data, channel B is panscan
-						SetFreq_Fast(CH_B, panfreq, 1, f_adc);
+						//SetFreq_Fast(CH_B, panfreq, 1, f_adc);
+						SetFreq(CH_B, panfreq, 1, f_adc);
+						
 					}
 					else	//LIBMODE_16BAPAN
 					{
 						// key in magic in current position for chA IQ data
-						dmabuff_1[(dmaoffset-16+0)&DMAMASK]=panentry->magic_I;
-						dmabuff_1[(dmaoffset-16+1)&DMAMASK]=panentry->magic_Q+1;
-						dmabuff_1[(dmaoffset-16+4)&DMAMASK]=panentry->magic_I+2;
-						dmabuff_1[(dmaoffset-16+5)&DMAMASK]=panentry->magic_Q+3;
+						dmabuff_1[(dmaoffset-TBLZONE+0)&DMAMASK]=panentry->magic_I;
+						dmabuff_1[(dmaoffset-TBLZONE+1)&DMAMASK]=panentry->magic_Q+1;
+						dmabuff_1[(dmaoffset-TBLZONE+4)&DMAMASK]=panentry->magic_I+2;
+						dmabuff_1[(dmaoffset-TBLZONE+5)&DMAMASK]=panentry->magic_Q+3;
 						// key in frequency
-						dmabuff_1[(dmaoffset-16+8)&DMAMASK]=panfreq&0xFFFF;
-						dmabuff_1[(dmaoffset-16+9)&DMAMASK]=(panfreq>>16)&0xFFFF;
+						dmabuff_1[(dmaoffset-TBLZONE+8)&DMAMASK]=panfreq&0xFFFF;
+						dmabuff_1[(dmaoffset-TBLZONE+9)&DMAMASK]=(panfreq>>16)&0xFFFF;
 						// key in trailer
-						dmabuff_1[(dmaoffset-16+12)&DMAMASK]=panentry->magic_I+4;
-						dmabuff_1[(dmaoffset-16+13)&DMAMASK]=panentry->magic_Q+5;
+						dmabuff_1[(dmaoffset-TBLZONE+12)&DMAMASK]=panentry->magic_I+4;
+						dmabuff_1[(dmaoffset-TBLZONE+13)&DMAMASK]=panentry->magic_Q+5;
 
 						// channel B is IQ data, channel A is panscan
-						SetFreq_Fast(CH_A, panfreq, 1, f_adc);
+						//SetFreq_Fast(CH_A, panfreq, 1, f_adc);
+						SetFreq(CH_A, panfreq, 1, f_adc);
 					}
 				}
 			}
@@ -1534,6 +2128,53 @@ uint8_t* CPUSerial = (uint8_t*)0x80800204;		// internal serial start address, 12
 					Endpoint_Write_16_BE(dmabuff_1[(roffseta+1)&DMAMASK]);		//Q
 					roffseta+=4;
 					*/
+				}
+
+				// Send the full packet to the host
+				if (!Endpoint_IsReadWriteAllowed())
+					Endpoint_ClearIN();
+			}
+		}
+		else if (datamode == DATA_TX8M_LIBUSB)
+		{
+			Endpoint_SelectEndpoint(CDC2_TX_EPNUM);
+
+			// Little obscure on a first glance, this routine is actually producing a code, what compiled with no optimization (OPT=0 in makefile)
+			// is capable of transfer rate of 7.5+ Mbit if nothing additional is added to a loop and there are no excess system interrupts!
+
+			if (Endpoint_IsINReady())
+			{
+				while (Endpoint_IsReadWriteAllowed())
+				{
+					if ((uint32_t)&dmabuff_1[(roffseta+16)&DMAMASK]==woffsetx)			// reached the end of buffer, so break. (use woffset+1 to test the max speed, as on this case the transfers are not terminated at all)
+						break;															// also, leave last 16 bytes in buffer, since we are patching in the panscanner header information there.
+																						// The +16 is needed to establish a no-transfer area to patch the panscanner header into, if needed
+
+					// note, that to prevent pointer mathematics inside loop for various modes (A/B/AB), we are using pre-offset pointers here!
+					
+#warning("Non-obvious code below!")					
+					// Note2: Because of layout considerations, we have the polarity of the I and Q signals reversed on TX8M board.
+					// This means mathematically, that I and Q themselves are to be reversed therefore, to get the proper decoding.
+
+					Endpoint_Write_16_BE(dmabuff_w1[(roffseta+2)&DMAMASK]);			//IchB(Q, rev.pol)
+					Endpoint_Write_16_BE(dmabuff_w1[(roffseta)&DMAMASK]);			//IchA(I, rev.pol)
+					Endpoint_Write_16_BE(dmabuff_w2[(roffseta+2)&DMAMASK]);
+					Endpoint_Write_16_BE(dmabuff_w2[(roffseta)&DMAMASK]);
+					Endpoint_Write_16_BE(dmabuff_w3[(roffseta+2)&DMAMASK]);
+					Endpoint_Write_16_BE(dmabuff_w3[(roffseta)&DMAMASK]);
+					Endpoint_Write_16_BE(dmabuff_w4[(roffseta+2)&DMAMASK]);
+					Endpoint_Write_16_BE(dmabuff_w4[(roffseta)&DMAMASK]);				
+/*
+					Endpoint_Write_16_BE(dmabuff_w1[(roffseta)&DMAMASK]);			//IchA(I, rev.pol)
+					Endpoint_Write_16_BE(dmabuff_w1[(roffseta+2)&DMAMASK]);			//IchB(Q, rev.pol)
+					Endpoint_Write_16_BE(dmabuff_w2[(roffseta)&DMAMASK]);
+					Endpoint_Write_16_BE(dmabuff_w2[(roffseta+2)&DMAMASK]);
+					Endpoint_Write_16_BE(dmabuff_w3[(roffseta)&DMAMASK]);
+					Endpoint_Write_16_BE(dmabuff_w3[(roffseta+2)&DMAMASK]);
+					Endpoint_Write_16_BE(dmabuff_w4[(roffseta)&DMAMASK]);
+					Endpoint_Write_16_BE(dmabuff_w4[(roffseta+2)&DMAMASK]);
+*/														
+					roffseta+=displacement;
 				}
 
 				// Send the full packet to the host
@@ -1972,6 +2613,9 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 						{
 							tuningfreq=strtol(carg1, NULL, 0);
 							SetFreq(CH_A, tuningfreq, 1, f_adc);
+							
+							InitIQDataEngine(0,0,1);						// re-sync phase
+
 						}
 						else
 							Message(1, "Invalid command line arguments!\r\n");
@@ -1985,6 +2629,8 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 						{
 							tuningfreq=strtol(carg1, NULL, 0);
 							SetFreq(CH_B, tuningfreq, 1, f_adc);
+							
+							InitIQDataEngine(0,0,1);						// re-sync phase
 						}
 						else
 							Message(1, "Invalid command line arguments!\r\n");
@@ -2064,6 +2710,58 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 							Message(1, "Diversity mode %s\r\n", (DiversityMode(strtol(carg1, NULL, 0),f_adc))?"ON":"OFF");
 						else
 							Message(1, "Invalid command line arguments!\r\n");
+					}
+					else if (strcmp(cmdname, "datamode") == 0)
+					{
+						Message(1, "BitDepth=%d:", BitDepth);
+						switch (BitDepth)
+						{
+							case _16BIT:
+								Message(1, "16-bit\r\n");
+								break;
+							case _24BIT:
+								Message(1, "24-bit\r\n");
+								break;
+							default:
+								Message(1, "Unknown???\r\n");
+								break;
+						}
+						Message(1, "Sample Rate=%ld\r\n", SampleRate);
+						
+						Message(1, "datamode=%d:", datamode);
+						switch (datamode)
+						{				
+							case DATA_AUDIO:
+							Message(1, "DATA_AUDIO\r\n");
+							break;
+							case DATA_LIBUSB:
+							Message(1, "DATA_LIBUSB\r\n");
+							break;
+							case DATA_NETWORK:
+							Message(1, "DATA_NETWORK\r\n");
+							break;
+							case DATA_SDRIQ:
+							Message(1, "DATA_SDRIQ\r\n");
+							break;
+							case DATA_LIBUSB_SPEEDTEST:
+							Message(1, "DATA_LIBUSB_SPEEDTEST\r\n");
+							break;
+							case DATA_LIBUSB_XPY:
+							Message(1, "DATA_LIBUSB_XPY\r\n");
+							break;
+							case DATA_LIBUSB_XMY:
+							Message(1, "DATA_LIBUSB_XMY\r\n");
+							break;
+							case DATA_TX8M_LIBUSB:
+							Message(1, "DATA_TX8M_LIBUSB\r\n");
+							break;
+							case DATA_TX8M_NETWORK:
+							Message(1, "DATA_TX8M_NETWORK\r\n");
+							break;
+							default:
+							Message(1, "Unknown???\r\n");
+							break;
+						}
 					}
 					else if (strncmp(cmdname, "agc ", 4) == 0)
 					{
@@ -2362,6 +3060,155 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 						else
 							Message(1, "Invalid command line arguments\r\n");
 					}
+					else if (strcmp(cmdname, "adcdump") == 0)
+					{					
+#if (TX8M == 1)
+						int j;
+						
+						select_tx8mspi(XILINX_SPICS, 0, 2000000, 0, 16);
+						Message(1, "TX8M ADC Dump from SPI Interface:\r\n");
+						Message(1, "=====================================\r\n");
+						for (i=0; i<64; i++)
+						{
+							for (j=0; j<8; j++)
+								Message(1, "%04.4X ", spi_read16());
+							Message(1, "- ");
+							for (j=0; j<8; j++)
+								Message(1, "%04.4X ", spi_read16());
+							
+							Message(1, "\r\n");
+						}
+						Message(1, "=====================================\r\n");
+						unselect_tx8mspi(XILINX_SPICS, 0);
+#else
+Message(1, "TX8M functionality was disabled during firmware compile!\r\n");
+#endif
+					}
+					else if (strcmp(cmdname, "tx8m") == 0)
+					{
+#if (TX8M == 1)
+					uint32_t k, bitstreamsize=0, j, btlen;
+					uint16_t rdstat;
+					uint8_t adcbytes[6];
+					uint8_t efound=0;
+												
+						Message(1, "SPI Memory Identification:\r\n");
+						for (i=0; i<20; i++)
+							Message(1, "0x%02.2X ", spimemid[i]);
+						Message(1, "\r\n");
+
+						select_tx8mspi(XILINX_SPICS, 0, 1000000, 0, 16);
+						Message(1, "Xilinx returns 0x%04.4X on SPI\r\n", spi_read16());
+						unselect_tx8mspi(XILINX_SPICS, 0);
+
+						//unsigned long twi_read_blk(uint8_t devaddr, uint8_t iaddrlen, uint8_t iaddr, uint8_t bytes, uint8_t *databuff)
+						twi_read_blk(0x60, 0, 0, 6, adcbytes);
+
+						Message(1, "TWI DAC on address 0x60:\r\n");
+						for (i=0; i<6; i++)
+							Message(1, "0x%02.2X ", adcbytes[i]);
+						Message(1, "\r\n");
+
+						Message(1, "Xilinx TWI_A (ADC) on address 0x3B:\r\n");
+						for (i=0; i<=7; i++)
+							Message(1, "0x%02.2X ", twi_read(0x3B, i, NULL));
+						Message(1, "\r\n");
+
+						Message(1, "Xilinx TWI_B (Exciter) on address 0x3C:\r\n");
+						for (i=0; i<=7; i++)
+							Message(1, "0x%02.2X ", twi_read(0x3C, i, NULL));
+						Message(1, "\r\n");
+
+						Message(1, "     .bit file size: %ld bytes\r\n", fpga_bitstream_size);
+						//show fpga fields information
+
+						j=0;
+
+						btlen=BE16_TO_CPU(*((uint16_t*)(fpga_bitstream_start+j)));
+						j+=2;
+						j+=btlen;		//skip the first header
+
+						btlen=BE16_TO_CPU(*((uint16_t*)(fpga_bitstream_start+j)));
+						j+=2;
+
+						if (fpga_bitstream_start[j] != 'a')
+						{
+							Message(1, "    .bit file error: Mandatory key 'a' not found!\r\n");
+						}
+  #if (0)		//hangs!
+						else
+						{
+							for (; j<fpga_bitstream_size-1;)
+							{
+								j+=1;		// skip key
+								btlen=BE16_TO_CPU(*((uint16_t*)(fpga_bitstream_start+j)));
+								j+=2;		// skip len field
+
+								//Message(1, "j=%d [j]=0x%02.2X len=%d\r\n", j, fpga_bitstream_start[j], len);
+
+								switch(fpga_bitstream_start[j-3])		// rewind len field and key
+								{
+									case 'a':
+										Message(1, "        Design name: %s\r\n", fpga_bitstream_start+j);
+										break;
+									case 'b':
+										Message(1, "          Part name: %s\r\n", fpga_bitstream_start+j);
+										break;
+									case 'c':
+										Message(1, "         Build Date: %s\r\n", fpga_bitstream_start+j);
+										break;
+									case 'd':
+										Message(1, "         Build Time: %s\r\n", fpga_bitstream_start+j);
+										break;
+									case 'e':
+										Message(1, " Full Bitstream len: %ld\r\n", BE32_TO_CPU(*((uint32_t*)(fpga_bitstream_start+j-2))));
+										j+=2;				// bitstream lenght is 32-bit field, so advance additional 2 units
+										efound=1;
+										break;
+									default:
+										break;
+								}
+
+								if (efound)		//bitstream start, so do not process further
+									break;
+
+								j+=btlen;
+							}
+							/**/
+						}
+  #endif
+
+						Message(1, "============================\r\n");
+
+						//scan for start
+						for (k=0; k<fpga_bitstream_size-1; k++)
+						{
+							if ((fpga_bitstream_start[k]==0xAA) && (fpga_bitstream_start[k+1]==0x99))
+							{
+								bitstreamsize=(fpga_bitstream_size-k);
+								break;
+							}
+						}
+
+						if (bitstreamsize)
+						{
+							Message(1, "Calc. bitstream len: %ld bytes\r\n", bitstreamsize);
+							Message(1, "   Sync word offset: 0x%08.8lX\r\n", k);
+						}
+						else
+						{
+							Message(1, "FPGA sync word not found!\r\n");
+						}
+
+						Message(1, "FPGA_INIT_B = %c\r\n", expander_read(FPGAINIT)?'1':'0');
+						Message(1, "  FPGA_DONE = %c\r\n", expander_read(FPGADONE)?'1':'0');
+						Message(1, "FPGA bytes loaded: %ld (last bytes = 0x%02.2X 0x%02.2X 0x%02.2X 0x%02.2X)\r\n", fpgabytesloaded,
+													(lastfpgabytes>>24)&0xFF, (lastfpgabytes>>16)&0xFF, (lastfpgabytes>>8)&0xFF, (lastfpgabytes>>0)&0xFF);
+
+#else
+						Message(1, "TX8M functionality was disabled during firmware compile!\r\n");
+#endif
+					}
 					// New extio DLL commands without echo
 					else if (strncmp(cmdname, "_ga ", 4) == 0)
 					{
@@ -2385,6 +3232,8 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 						{
 							tuningfreq=strtol(carg1, NULL, 0);
 							SetFreq(CH_A, tuningfreq, 1, f_adc);
+							
+							InitIQDataEngine(0,0,1);						// re-sync phase
 						}
 					}
 					else if (strncmp(cmdname, "_fb ", 4) == 0)
@@ -2393,6 +3242,8 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 						{
 							tuningfreq=strtol(carg1, NULL, 0);
 							SetFreq(CH_B, tuningfreq, 1, f_adc);
+							
+							InitIQDataEngine(0,0,1);						// re-sync phase
 						}
 					}
 					else if (strncmp(cmdname, "_pa ", 4) == 0)		// phase word from 0 to 2^16
@@ -2475,6 +3326,8 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 									if ((!pollmode)||(firstsync))		// working with HDSDR likely, so no gimmicks (or is the first message syncing with SDR-RADIO)
 									{
 										SetFreq(CH_A, tuningfreq, 1, f_adc);
+										InitIQDataEngine(0,0,1);						// re-sync phase
+
 										firstsync=false;				// do it only once if in poll mode
 									}
 									else
@@ -2484,12 +3337,16 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 										{
 											tuningfreq=lastfreq_A+(tuningfreq-(lastfreq_A+(SampleRate/2)));
 											SetFreq(CH_A, tuningfreq, 1, f_adc);				// set new center freq, but only by the necessary increment
+											InitIQDataEngine(0,0,1);						// re-sync phase
+
 											Message(1, "FA%11.11lu;", tuningfreq);		// write back to the SDR-RADIO what we are using for a new center frequency
 										}
 										else if (tuningfreq<(lastfreq_A-(SampleRate/2)))
 										{
 											tuningfreq=lastfreq_A-((lastfreq_A-(SampleRate/2))-tuningfreq);
 											SetFreq(CH_A, tuningfreq, 1, f_adc);				// set new center freq, but only by the necessary increment
+											InitIQDataEngine(0,0,1);						// re-sync phase
+
 											Message(1, "FA%11.11lu;", tuningfreq);		// write back to the SDR-RADIO what we are using for a new center frequency
 										}
 									}
@@ -2524,10 +3381,14 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 										//Message(1, "IF;");							// request actual tuning frequency with IF message (can be done with FA as well, but
 																					// processing is easier this way)
 										SetFreq(CH_A, tuningfreq, 1, f_adc);					// set new freq,
+										InitIQDataEngine(0,0,1);						// re-sync phase
+
 									}
 									else if (!pollmode)
 									{
 										SetFreq(CH_B, tuningfreq, 1, f_adc);					// set new freq,
+										InitIQDataEngine(0,0,1);						// re-sync phase
+
 									}
 								}
 							}
@@ -2549,6 +3410,8 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 											break;
 									tuningfreq=strtol(cmdbuffer+a, NULL, 0);
 									SetFreq(CH_A, tuningfreq, 1, f_adc);
+									InitIQDataEngine(0,0,1);						// re-sync phase
+
 									//Message(1, "%s;", cmdbuffer);
 								}
 							}
@@ -2732,6 +3595,8 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 								{
 									lastfreq_A+=TUNINGSTEP;
 									SetFreq(CH_A, lastfreq_A, 1, f_adc);
+									InitIQDataEngine(0,0,1);						// re-sync phase
+
 								}
 								Message(1, "A=%lu\r\n", lastfreq_A);
 								break;
@@ -2741,6 +3606,8 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 								{
 									lastfreq_A-=TUNINGSTEP;
 									SetFreq(CH_A, lastfreq_A, 1, f_adc);
+									InitIQDataEngine(0,0,1);						// re-sync phase
+
 								}
 								Message(1, "A=%lu\r\n", lastfreq_A);
 								break;
@@ -2750,6 +3617,8 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 								{
 									lastfreq_B+=TUNINGSTEP;
 									SetFreq(CH_B, lastfreq_B, 1, f_adc);
+									InitIQDataEngine(0,0,1);						// re-sync phase
+
 								}
 								Message(1, "B=%lu\r\n", lastfreq_B);
 								break;
@@ -2759,6 +3628,8 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 								{
 									lastfreq_B-=TUNINGSTEP;
 									SetFreq(CH_B, lastfreq_B, 1, f_adc);
+									InitIQDataEngine(0,0,1);						// re-sync phase
+
 								}
 								Message(1, "B=%lu\r\n", lastfreq_B);
 								break;
@@ -2822,6 +3693,7 @@ Since SSCSFIntCounter is not running (interrupt is deprecated), this function ha
 			case DATA_LIBUSB_SPEEDTEST:
 			case DATA_LIBUSB_XMY:
 			case DATA_LIBUSB_XPY:
+			case DATA_TX8M_LIBUSB:
 				CDC_Device_USBTask(&VirtualSerial2_CDC_Interface);
 				break;
 
@@ -2954,8 +3826,10 @@ void EVENT_USB_Device_ControlRequest(void)
 						// in any case, set channel A and channel B to their respective RF frontends first
 						WriteRegister(19, 0x4);
 						panadapter = 0;
+						
+						libmode = USB_ControlRequest.wValue;
 
-						switch (USB_ControlRequest.wValue)
+						switch (libmode)
 						{
 							case LIBMODE_OFF:
 									gpio_set_pin_high(LED);
@@ -2985,12 +3859,13 @@ void EVENT_USB_Device_ControlRequest(void)
 									stepsdone = 0;			// reset panadapter frequency step counter
 									currentpanentry = 0;	// start from the beginning of table
 
-							case LIBMODE_16AB:
-									if (USB_ControlRequest.wValue == LIBMODE_16AB)		// panadapter?
-									{
-										panadapter = 0;
-									}
-									else if (USB_ControlRequest.wValue == LIBMODE_16ABPAN)
+							//case LIBMODE_16AB:
+							//		if (USB_ControlRequest.wValue == LIBMODE_16AB)		// panadapter?
+							//		{
+							//			panadapter = 0;
+							//		}
+							//		else
+									if (USB_ControlRequest.wValue == LIBMODE_16ABPAN)
 									{
 										// set channel A and B use channel A RF frontend
 										WriteRegister(19, 0x0);
@@ -3016,6 +3891,7 @@ void EVENT_USB_Device_ControlRequest(void)
 							case LIBMODE_16A:
 									gpio_set_pin_low(LED);
 									datamode = DATA_LIBUSB;
+									//datamode = DATA_TX8M_LIBUSB;
 
 									roffseta=0;						// buffer start
 									displacement=16;				// how many words (16-bit) to advance in buffer on each pass
@@ -3038,6 +3914,26 @@ void EVENT_USB_Device_ControlRequest(void)
 									dmabuff_w2=&dmabuff_1[6];		//IB
 									dmabuff_w3=&dmabuff_1[10];		//IB
 									dmabuff_w4=&dmabuff_1[14];		//IB
+
+									break;
+
+							case LIBMODE_16IAQB:
+									gpio_set_pin_low(LED);
+									datamode = DATA_TX8M_LIBUSB;
+									//datamode = DATA_LIBUSB;
+
+									roffseta=0;						// buffer start shifted by
+									displacement=16;				// how many words (16-bit) to advance in buffer on each pass
+
+									// note! In this mode we are taking two consequtive I samples, i.e. dmabuff_xx is not incremented by 1, but by 2!
+									dmabuff_w1=&dmabuff_1[0];		//IA
+									dmabuff_w2=&dmabuff_1[4];		//IA
+									dmabuff_w3=&dmabuff_1[8];		//IA
+									dmabuff_w4=&dmabuff_1[12];		//IA
+									
+									// have to override phase to minimize TX8M aliases, as we have slight channel skew between channels
+									SetPhase(CH_A, 70);				//increments by 0.00549 degrees.
+									SetPhase(CH_B, 0);
 
 									break;
 
@@ -3337,10 +4233,14 @@ void EVENT_USB_Device_ControlRequest(void)
 							if (USB_ControlRequest.wValue == LIBUSB_CHA)
 							{
 								SetFreq(CH_A, libusb_freq, 1, f_adc);
+								InitIQDataEngine(0,0,1);						// re-sync phase
+
 							}
 							else if (USB_ControlRequest.wValue == LIBUSB_CHB)
 							{
 								SetFreq(CH_B, libusb_freq, 1, f_adc);
+								InitIQDataEngine(0,0,1);						// re-sync phase
+
 							}
 
 							//Message(1, "LIBUSB_SETFREQ: Freq=%ld Channel=%d\n", libusb_freq, USB_ControlRequest.wValue);
@@ -3404,7 +4304,7 @@ void EVENT_USB_Device_ControlRequest(void)
 
 							libusb_phase = Endpoint_Read_16_LE();
 
-							//Message(1, "Phase value received=%04X\n", libusb_phase);
+							//Message(1, "Phase value received=%04X(%u)\n", libusb_phase, libusb_phase);
 
 							if (USB_ControlRequest.wValue == LIBUSB_CHA)
 							{

@@ -152,7 +152,7 @@ typedef struct
 void NetSDR_init(void);
 void NetSDR_Task(void);
 
-#define _0DB_GAIN		8								// gain value for SetGain() what coresponds to 0dB RF Gain setting
+#define _0DB_GAIN		7								// gain value for SetGain() what coresponds to 0dB RF Gain setting
 
 #define NETMAXDATA (12*1024)							// data area max size is two full 6K buffers (network chip maximum with one transfer)
 

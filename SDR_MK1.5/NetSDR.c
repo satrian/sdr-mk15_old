@@ -27,6 +27,14 @@
 #include "apps-conf.h"
 
 #include "global-conf.h"
+#include "gpio.h"
+#include "eth_spi.h"
+#include "spi.h"
+#include "tx8m.h"
+
+#include "TWI.h"
+
+
 
 //#include "net_conf.h"
 #include "clock-arch.h"
@@ -47,6 +55,7 @@
 
 //#define USE_24BITNET	1
 //#define NAMETEST ""
+#define TX8MBUSMASTER 1
 
 #if UIP_UDP
 #else
@@ -344,6 +353,8 @@ void NetSDR_Task(void)
 uint16_t i, j, k;
 uint16_t *uip_buf_short;
 uint8_t *uip_buf_byte;
+uint16_t tx8mpairs;
+uint16_t tx8mbytes;
 
 //uint8_t a, b;
 /*
@@ -392,6 +403,89 @@ unsigned long d;
 			netiqdump=0;
 		}
 
+// Actual data transmission. If in MK1.5 mode, then we will use one of the two SSC DMA buffers (the one that is not being written at the moment)
+// and set it as a source for network transfer. SPI DMA will the get the data and dump it to the network chip.
+
+// For TX8M modes, we will ignore whatever is happening inside the radio, send the header to the network chip. We then disable 
+// Atmel SPI MOSI pin and initiate TX8M board as data master. Now, when we activate network chip and tx8m chipselects and initialize DMA 
+// transfer to SPI from memory (with bogus data), SPI clock will be output, but SPI data will be clocked out by TX8M.
+// This sort of "virtual busmastering" gives us something what looks like external DMA and frees processor exactly the same way as it was for the
+// local DMA transfers.
+
+
+#if ((TX8MBUSMASTER == 1) && (TX8M == 1))
+//#error tx8m busmaster enabled!
+		
+		tx8mpairs=twi_read(0x3B, 5, NULL);				// this will equal 2x IQ pairs
+		
+		if (BitDepth == _24BIT)
+			tx8mbytes=2*tx8mpairs*2*3;
+		else
+			tx8mbytes=2*tx8mpairs*2*2;
+			
+		NetDataPackets=tx8mbytes/NetPktLen;
+			
+		for (i=0, j=0; i<(NetDataPackets); i++)
+		{
+			uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + 2]=netsdrpktseq&0xFF;
+			uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + 3]=(netsdrpktseq>>8)&0xFF;
+
+			if (!++netsdrpktseq)					// only the first/trigger packet is supposed to have seq# 0
+				netsdrpktseq++;
+
+			uip_slen=2+2+NetPktLen;					// have to patch this in manually, since uip_send() will also try to recopy data if udp_send() is used
+			uip_udp_conn=udp_conn;					// give uIP our locally initialized UDP socket
+			uip_process(UIP_UDP_SEND_CONN);			// processes all the header stuff and checksum, but does not transmit jet
+
+			uip_arp_out();							// needed, otherwise arp decomposes!
+			//network_send();							// actually transmit data
+
+			ksz8851BeginPacketSend(uip_len);
+			ksz8851SendPacketData((uint8_t *)uip_buf, UIP_LLH_LEN + UIP_IPUDPH_LEN + 2 + 2);
+					
+			//disable MOSI pin (make input to have it 3-stated)
+			gpio_configure_pin(ETH_SPI_MOSI_PIN, GPIO_DIR_INPUT);
+			
+			//enable TX8M datamaster (must be done before we are enabling TX8M, otherwise MISO signals collide with network chip)
+			twi_write(0x3B, 3, 0x10);	//00010000
+										//||||||||
+										//|||||||+-----	Do not clear error bits here
+										//||||+++------	Q data marker (first 3 high order bits)
+										//|||+--------- Enable TX8M data master
+										//+++----------	I data marker (first 3 high order bits)
+			//select TX8M
+			gpio_set_pin_low(XILINX_SPICS&0xFF);
+			//now perform the actual data transfer
+			ksz8851SendPacketDataNonBlocking((uint8_t*)uip_buf_byte+(i*NetPktLen), NetPktLen);		// note the use of non-blocking function here!
+			
+			while (!spi_tx_completed())		// since non-blocking version is used, have to wait for completion before allowing new transfers, so in case endian swapping is finished already, we shall double-wait here just in case
+			{
+				/*
+				if (!ReverseEndian)
+				{
+					//could actually do something useful here, like USBTask() or something, but no need at the moment.
+				}
+				*/
+			}
+			
+			//unselect TX8M (must be done before datamaster is deactivated, otherwise MOSI of the cpu will collide with MISO of the tx8m)
+			gpio_set_pin_high(XILINX_SPICS&0xFF);
+			//disable TX8M datamastering
+			twi_write(0x3B, 3, 0x0);	//00000000
+										//||||||||
+										//|||||||+-----	Do not clear error bits here
+										//||||+++------	Q data marker (first 3 high order bits)
+										//|||+--------- Disable TX8M data master
+										//+++----------	I data marker (first 3 high order bits)
+			//enable MOSI again
+			gpio_enable_module(ETH_SPI_GPIO_MAP, sizeof(ETH_SPI_GPIO_MAP) / sizeof(ETH_SPI_GPIO_MAP[0]));
+
+			ksz8851EndPacketSend();
+
+			uip_slen=0;
+		}
+			
+#else
 		for (i=0, j=0; i<NetDataPackets; i++)
 		{
 			// If current packet is not fully endian-swapped yet, finish swapping first
@@ -473,6 +567,8 @@ unsigned long d;
 
 			uip_slen=0;
 		}
+		
+#endif //!tx8m busmaster
 
 		ready2udp=0;
 		uip_buf=uip_buf_static;					// restore uip's own buffer	(defined actually here, at the SDR_MK1.5.c)
@@ -1105,6 +1201,58 @@ static uint16_t SampleRateSet=0;
 					channel=CH_A;
 				else
 					channel=CH_B;
+					
+				//experimental gain control to see if it makes any difference
+				
+				Message(1, "Gain set: channel=%d, gain=%d(0x%02.2X)\r\n", payload[0], payload[1], payload[1]);
+				
+				switch(payload[1])
+				{
+					case 0:		//0dB - Enable AGC
+						GainCH_A=_0DB_GAIN;
+						WriteRegister(20, ReadRegister(20)&0xF7);	// enable AGC loop
+						SetGain(CH_A, 7);							//highest IF gain with non-fixed exponent
+						break;
+					//below are all exponents fixed, bit shift 5 	
+					case 0xF6:	//-10dB (-12dB actually)
+						GainCH_A=_0DB_GAIN-2;
+						SetGain(CH_A, 8);		
+
+						//3 highest bits reversed, so 000=hignest gain and 111=lowest.
+						//0		1110 =0000 =00
+						//-6	1100 =0010 =20
+						//-12	1010 =0100 =30
+						//-18	1000 =0110 =60
+						//-24	0110 =1000 =80
+						//-30	0100 =1010 =A0
+						//-36	0010 =1100 =C0
+						//-42	0000 =1110 =E0
+						WriteRegister(20, ReadRegister(20)&0xF7);	// enable AGC loop
+						WriteRegister(23, 0x30);							
+						WriteRegister(20, ReadRegister(20)|0x8);	//disable AGC loop and set integrator value
+						break;
+
+					case 0xEC:	//-20dB (-18dB actually)
+						GainCH_A=_0DB_GAIN-4;
+						SetGain(CH_A, 8);		
+						WriteRegister(20, ReadRegister(20)&0xF7);	// enable AGC loop
+						WriteRegister(23, 0x60);	
+						WriteRegister(20, ReadRegister(20)|0x8);	//disable AGC loop and set integrator value
+						break;
+
+					case 0xE2:	//-30dB
+						GainCH_A=_0DB_GAIN-5;
+						SetGain(CH_A, 8);	
+						WriteRegister(20, ReadRegister(20)&0xF7);	// enable AGC loop
+						WriteRegister(23, 0xA0);	
+						WriteRegister(20, ReadRegister(20)|0x8);	//disable AGC loop and set integrator value
+						break;
+					
+					default:
+						break;
+				}
+					
+				/*
 
 				switch(payload[1])
 				{
@@ -1124,6 +1272,7 @@ static uint16_t SampleRateSet=0;
 						SetGain(channel, _0DB_GAIN-5);	// -30dB
 						break;
 				}
+				*/
 				// set gain
 				memmove(netretdata+netretlen+4, payload, 2);	// payload 2 is a gain: 0x00=0dB, 0xF6=-10dB, 0xEC=-20dB, 0xE2=-30dB
 			}
@@ -1160,6 +1309,10 @@ static uint16_t SampleRateSet=0;
 
 			// Note, that SampleMode() recalculates our ADC master clock to have the clocks dividing without jitter.
 			SampleMode(nw_samplerate, SINGLE_CHANNEL, _16BIT, 0);	// go with 16 bits for here and now (also recalculates LO frequencys)
+			
+#if (TX8M == 1)
+			//select appropriate sample rate for 24-bit ADC's
+#endif
 
 			memmove(netretdata+netretlen, "\x9\0\xB8\0", 4);
 			memmove(netretdata+netretlen+4, payload, 5);

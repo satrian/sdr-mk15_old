@@ -28,6 +28,8 @@
 #include "spi_master.h"
 
 // SPI Pin Configuration for AT32UC3B
+
+#include "gpio.h"
 #include "eth_spi.h"
 
 static uint16_t	length_sum;

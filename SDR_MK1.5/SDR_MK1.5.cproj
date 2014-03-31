@@ -1,0 +1,1241 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectVersion>6.1</ProjectVersion>
+    <ProjectGuid>dce6c7e3-ee26-4d79-826b-08594b9ad897</ProjectGuid>
+    <avrdevice>AT32UC3B0512</avrdevice>
+    <avrdeviceseries>none</avrdeviceseries>
+    <OutputType>Executable</OutputType>
+    <Language>C</Language>
+    <OutputFile>$(MSBuildProjectName).elf</OutputFile>
+    <OutputDirectory>$(MSBuildProjectDirectory)\$(Configuration)</OutputDirectory>
+    <AvrGccProjectExtensions>
+    </AvrGccProjectExtensions>
+    <AssemblyName>SDR_MK1.5</AssemblyName>
+    <Name>SDR_MK1.5</Name>
+    <RootNamespace>SDR_MK1.5</RootNamespace>
+    <avrtool>com.atmel.avrdbg.tool.avrdragon</avrtool>
+    <com_atmel_avrdbg_tool_avrdragon>
+      <ToolType>com.atmel.avrdbg.tool.avrdragon</ToolType>
+      <ToolName>AVR Dragon</ToolName>
+      <ToolNumber>00A200022379</ToolNumber>
+      <Channel>
+        <host>127.0.0.1</host>
+        <port>64358</port>
+        <ssl>False</ssl>
+      </Channel>
+      <ToolOptions>
+        <InterfaceName>JTAG</InterfaceName>
+        <InterfaceProperties>
+          <JtagDbgClock>0</JtagDbgClock>
+          <JtagProgClock>1000000</JtagProgClock>
+          <IspClock>150000</IspClock>
+          <JtagInChain>false</JtagInChain>
+          <JtagEnableExtResetOnStartSession>false</JtagEnableExtResetOnStartSession>
+          <JtagDevicesBefore>0</JtagDevicesBefore>
+          <JtagDevicesAfter>0</JtagDevicesAfter>
+          <JtagInstrBitsBefore>0</JtagInstrBitsBefore>
+          <JtagInstrBitsAfter>0</JtagInstrBitsAfter>
+        </InterfaceProperties>
+      </ToolOptions>
+    </com_atmel_avrdbg_tool_avrdragon>
+    <avrtoolinterface>JTAG</avrtoolinterface>
+    <SccProjectName>Svn</SccProjectName>
+    <SccProvider>SubversionScc</SccProvider>
+    <SccAuxPath>Svn</SccAuxPath>
+    <SccLocalPath>Svn</SccLocalPath>
+    <ToolchainName>com.Atmel.AVRGCC32.C</ToolchainName>
+    <ToolchainFlavour>Native</ToolchainFlavour>
+    <KeepTimersRunning>true</KeepTimersRunning>
+    <OverrideVtor>false</OverrideVtor>
+    <CacheFlash>true</CacheFlash>
+    <ProgFlashFromRam>true</ProgFlashFromRam>
+    <RamSnippetAddress>0x20000000</RamSnippetAddress>
+    <UncachedRange />
+    <OverrideVtorValue>exception_table</OverrideVtorValue>
+    <BootSegment>2</BootSegment>
+    <eraseonlaunchrule>1</eraseonlaunchrule>
+    <AsfFrameworkConfig>
+      <framework-data xmlns="">
+        <options />
+        <configurations />
+        <files />
+        <documentation help="" />
+        <offline-documentation help="" />
+        <dependencies>
+          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.11.0" />
+        </dependencies>
+      </framework-data>
+    </AsfFrameworkConfig>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <OutputFileName>SDR_MK1.5</OutputFileName>
+    <OutputFileExtension>.elf</OutputFileExtension>
+    <ToolchainSettings>
+      <Avr32Gcc xmlns="">
+        <avr32gcc.common.outputfiles.hex>True</avr32gcc.common.outputfiles.hex>
+        <avr32gcc.common.outputfiles.lss>True</avr32gcc.common.outputfiles.lss>
+        <avr32gcc.common.outputfiles.eep>True</avr32gcc.common.outputfiles.eep>
+        <avr32gcc.common.outputfiles.srec>True</avr32gcc.common.outputfiles.srec>
+        <avr32gcc.compiler.optimization.level>Optimize for size (-Os)</avr32gcc.compiler.optimization.level>
+        <avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>True</avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>
+        <avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>True</avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>
+        <avr32gcc.compiler.warnings.AllWarnings>True</avr32gcc.compiler.warnings.AllWarnings>
+        <avr32gcc.linker.libraries.Libraries>
+          <ListValues>
+            <Value>libm</Value>
+          </ListValues>
+        </avr32gcc.linker.libraries.Libraries>
+        <avr32gcc.linker.optimization.GarbageCollectUnusedSections>True</avr32gcc.linker.optimization.GarbageCollectUnusedSections>
+        <avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>True</avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>
+        <avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>True</avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>
+      </Avr32Gcc>
+    </ToolchainSettings>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <UsesExternalMakeFile>True</UsesExternalMakeFile>
+    <OutputDirectory>C:\engineering\Software\SDR_MK1.5\SDR_MK1.5</OutputDirectory>
+    <ExternalMakeFilePath>C:\engineering\Software\SDR_MK1.5\SDR_MK1.5\makefile</ExternalMakeFilePath>
+    <OutputFileName>SDR_MK1.5</OutputFileName>
+    <OutputFileExtension>.elf</OutputFileExtension>
+    <ToolchainSettings>
+      <Avr32Gcc xmlns="">
+        <avr32gcc.common.outputfiles.hex>True</avr32gcc.common.outputfiles.hex>
+        <avr32gcc.common.outputfiles.lss>True</avr32gcc.common.outputfiles.lss>
+        <avr32gcc.common.outputfiles.eep>True</avr32gcc.common.outputfiles.eep>
+        <avr32gcc.common.outputfiles.srec>True</avr32gcc.common.outputfiles.srec>
+        <avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>True</avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>
+        <avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>True</avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>
+        <avr32gcc.compiler.optimization.DebugLevel>Maximum (-g3)</avr32gcc.compiler.optimization.DebugLevel>
+        <avr32gcc.compiler.warnings.AllWarnings>True</avr32gcc.compiler.warnings.AllWarnings>
+        <avr32gcc.linker.libraries.Libraries>
+          <ListValues>
+            <Value>libm</Value>
+          </ListValues>
+        </avr32gcc.linker.libraries.Libraries>
+        <avr32gcc.linker.optimization.GarbageCollectUnusedSections>True</avr32gcc.linker.optimization.GarbageCollectUnusedSections>
+        <avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>True</avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>
+        <avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>True</avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>
+        <avr32gcc.assembler.debugging.DebugLevel>Default (-g)</avr32gcc.assembler.debugging.DebugLevel>
+        <avr32gcc.preprocessingassembler.debugging.DebugLevel>Default (-Wa,-g)</avr32gcc.preprocessingassembler.debugging.DebugLevel>
+      </Avr32Gcc>
+    </ToolchainSettings>
+    <BuildTarget>all</BuildTarget>
+    <CleanTarget>clean</CleanTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Test' ">
+    <UsesExternalMakeFile>True</UsesExternalMakeFile>
+    <OutputDirectory>C:\engineering\Software\SDR_MK1.5\SDR_MK1.5</OutputDirectory>
+    <ExternalMakeFilePath>C:\engineering\Software\SDR_MK1.5\SDR_MK1.5\makefile</ExternalMakeFilePath>
+    <OutputPath>bin\Test\</OutputPath>
+    <OutputFileName>SDR_MK1.5</OutputFileName>
+    <OutputFileExtension>.elf</OutputFileExtension>
+    <ToolchainSettings>
+      <Avr32Gcc xmlns="">
+        <avr32gcc.common.outputfiles.hex>True</avr32gcc.common.outputfiles.hex>
+        <avr32gcc.common.outputfiles.lss>True</avr32gcc.common.outputfiles.lss>
+        <avr32gcc.common.outputfiles.eep>True</avr32gcc.common.outputfiles.eep>
+        <avr32gcc.common.outputfiles.srec>True</avr32gcc.common.outputfiles.srec>
+        <avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>True</avr32gcc.compiler.optimization.PrepareFunctionsForGarbageCollection>
+        <avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>True</avr32gcc.compiler.optimization.UseAssemblerForPseudoInstructions>
+        <avr32gcc.compiler.optimization.DebugLevel>Maximum (-g3)</avr32gcc.compiler.optimization.DebugLevel>
+        <avr32gcc.compiler.warnings.AllWarnings>True</avr32gcc.compiler.warnings.AllWarnings>
+        <avr32gcc.linker.libraries.Libraries>
+          <ListValues>
+            <Value>libm</Value>
+          </ListValues>
+        </avr32gcc.linker.libraries.Libraries>
+        <avr32gcc.linker.optimization.GarbageCollectUnusedSections>True</avr32gcc.linker.optimization.GarbageCollectUnusedSections>
+        <avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>True</avr32gcc.linker.optimization.PutReadOnlyDataInWritableDataSection>
+        <avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>True</avr32gcc.linker.optimization.AllowDirectReferencesToDataSection>
+        <avr32gcc.assembler.debugging.DebugLevel>Default (-g)</avr32gcc.assembler.debugging.DebugLevel>
+        <avr32gcc.preprocessingassembler.debugging.DebugLevel>Default (-Wa,-g)</avr32gcc.preprocessingassembler.debugging.DebugLevel>
+      </Avr32Gcc>
+    </ToolchainSettings>
+    <BuildTarget>all</BuildTarget>
+    <CleanTarget>clean</CleanTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="asf.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\cpu\cycle_counter\cycle_counter.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\flashc\flashc.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\flashc\flashc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\gpio\gpio.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\gpio\gpio.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\intc\exception.S">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\intc\intc.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\intc\intc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\pdca\pdca.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\pdca\pdca.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\pm\pm.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\pm\pm.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\pm\pm_conf_clocks.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\pm\power_clocks_lib.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\pm\power_clocks_lib.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\pm\sleep.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\spi\spi.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\spi\spi.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\ssc\i2s\ssc_i2s.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\ssc\i2s\ssc_i2s.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\tc\tc.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\drivers\tc\tc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\utils\compiler.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\utils\parts.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\utils\preprocessor\mrepeat.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\utils\preprocessor\preprocessor.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\utils\preprocessor\stringz.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\utils\preprocessor\tpaste.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\utils\startup\startup_uc3.S">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\utils\startup\trampoline_uc3.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\utils\startup\trampoline_uc3.S">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\avr32\utils\status_codes.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\boards\board.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\clock\genclk.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\clock\osc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\clock\pll.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\clock\sysclk.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\clock\uc3b0_b1\genclk.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\clock\uc3b0_b1\osc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\clock\uc3b0_b1\pll.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\clock\uc3b0_b1\sysclk.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\clock\uc3b0_b1\sysclk.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\spi\spi_master.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\spi\uc3_spi\spi_master.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\services\spi\uc3_spi\spi_master.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\utils\interrupt.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="asf\common\utils\interrupt\interrupt_avr32.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="avr32elf_uc3b0512.x">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="cdce913_coeff.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="cdce913_coeff.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="config\conf_clock.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="config\conf_spi_master.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="cycle_counter.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="Descriptors.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="Descriptors.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="LM97593.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="LM97593.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="NetSDR.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="NetSDR.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="OmniRig.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="OmniRig.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="SDR-IQ.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="SDR-IQ.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="SDR_MK1.5.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="sdr_mk1.5.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="terminal.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="terminal.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="TWI.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="TWI.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="TX8M.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="TX8M.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\apps-conf.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\apps\dhcpc\dhcpc.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\apps\dhcpc\dhcpc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\avr\pgmspace.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\clock-arch.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\clock-arch.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\doc\example-mainloop-with-arp.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\doc\example-mainloop-without-arp.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\doc\uip-code-style.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\eth_spi.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\interfaces\network.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\avrlibdefs.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\avrlibtypes.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\global.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\ksz8851.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\ksz8851.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\ksz8851conf.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\drivers\ksz8851\network.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\global-conf.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\libs\memb\memb.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\libs\memb\memb.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\libs\net_conf\net_conf.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\libs\net_conf\net_conf.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip-conf.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\clock.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\lc-addrlabels.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\lc-switch.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\lc.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\psock.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\psock.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\pt.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\shell.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\timer.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\timer.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\udpds.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip-fw.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip-fw.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip-neighbor.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip-neighbor.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip-split.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip-split.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uiplib.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uiplib.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uipopt.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip_arch.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip_arp.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uIP\uip\uip_arp.h">
+      <SubType>compile</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="asf\avr32\drivers\flashc\flash_example\at32uc3b0256_evk1101\link_uc3b0256.lds">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="asf\avr32\utils\linker_scripts\at32uc3b\0256\gcc\link_uc3b0256.lds">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="asf\common\services\clock\uc3b0_b1\sysclk.lst">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="asf\common\services\clock\uc3b0_b1\sysclk.o">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="makefile">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="SDR_MK1.5.hex">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\Atmega1284p.pdf">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\Doxyfile">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\doxygen.sty">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\examples.txt">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\header.tex">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00036.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00037.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00038.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00039.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00040.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00041.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00042.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00043.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00044.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00045.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00046.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00047.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00048.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00049.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00050.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00051.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00077.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00078.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00079.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00080.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00081.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00082.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00083.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00084.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00085.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00086.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00087.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00088.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00089.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00090.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00091.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00092.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00093.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00094.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00095.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00096.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00097.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00100.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00101.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00102.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00103.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00104.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00105.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00107.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00110.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00111.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00112.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00113.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00114.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00120.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00121.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00123.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00124.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00125.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00127.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00128.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00129.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00130.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00131.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00132.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00134.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00135.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00136.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00137.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00138.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00139.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00140.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00141.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00142.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00143.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00144.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00145.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00146.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00147.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00148.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00149.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00150.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00151.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00152.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00153.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00154.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00155.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00156.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00157.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00158.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00159.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00160.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00161.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00162.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00163.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00164.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00168.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00169.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00170.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00171.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00172.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00173.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00174.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00175.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00176.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00177.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00178.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00179.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00180.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00181.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00182.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00183.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00184.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00185.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00186.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00187.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00188.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00189.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00190.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00191.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00192.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00193.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00194.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00195.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00196.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00197.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00198.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00199.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00200.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00201.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00202.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00203.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00204.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00205.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00206.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\a00207.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\annotated.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\classes.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\doxygen.css">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\doxygen.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\examples.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\files.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2blank.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2doc.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2folderclosed.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2folderopen.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2lastnode.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2link.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2mlastnode.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2mnode.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2node.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2plastnode.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2pnode.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\ftv2vertline.png">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\functions.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\functions_vars.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x61.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x62.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x64.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x65.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x66.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x68.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x69.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x6c.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x6d.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x6e.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x70.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x72.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x73.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x74.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x75.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_0x77.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x61.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x62.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x64.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x65.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x66.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x68.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x69.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x6c.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x6d.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x6e.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x70.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x72.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x73.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x74.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x75.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_defs_0x77.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_func.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_type.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\globals_vars.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\hierarchy.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\index.hhc">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\index.hhk">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\index.hhp">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\index.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\main.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\modules.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\tabs.css">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\tab_b.gif">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\tab_l.gif">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\tab_r.gif">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\html\tree.html">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\Makefile">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\mobisys2003.pdf">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\pt-doc.txt">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\README">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\sicslogo.pdf">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\uip-code-style.txt">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\uip-doc.txt">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\doc\uip-refman.pdf">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\drivers\interfaces\README">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\libs\memb\Makefile.memb">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="uIP\libs\net_conf\Makefile.net_conf">
+      <SubType>compile</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="asf\" />
+    <Folder Include="asf\avr32\" />
+    <Folder Include="asf\avr32\drivers\" />
+    <Folder Include="asf\avr32\drivers\cpu\" />
+    <Folder Include="asf\avr32\drivers\cpu\cycle_counter\" />
+    <Folder Include="asf\avr32\drivers\flashc\" />
+    <Folder Include="asf\avr32\drivers\flashc\flash_example\" />
+    <Folder Include="asf\avr32\drivers\flashc\flash_example\at32uc3b0256_evk1101\" />
+    <Folder Include="asf\avr32\drivers\gpio\" />
+    <Folder Include="asf\avr32\drivers\intc\" />
+    <Folder Include="asf\avr32\drivers\pdca\" />
+    <Folder Include="asf\avr32\drivers\pm\" />
+    <Folder Include="asf\avr32\drivers\spi\" />
+    <Folder Include="asf\avr32\drivers\ssc\" />
+    <Folder Include="asf\avr32\drivers\ssc\i2s\" />
+    <Folder Include="asf\avr32\drivers\tc\" />
+    <Folder Include="asf\avr32\utils\" />
+    <Folder Include="asf\avr32\utils\linker_scripts\" />
+    <Folder Include="asf\avr32\utils\linker_scripts\at32uc3b\" />
+    <Folder Include="asf\avr32\utils\linker_scripts\at32uc3b\0256\" />
+    <Folder Include="asf\avr32\utils\linker_scripts\at32uc3b\0256\gcc\" />
+    <Folder Include="asf\avr32\utils\preprocessor\" />
+    <Folder Include="asf\avr32\utils\startup\" />
+    <Folder Include="asf\common\" />
+    <Folder Include="asf\common\boards\" />
+    <Folder Include="asf\common\services\" />
+    <Folder Include="asf\common\services\clock\" />
+    <Folder Include="asf\common\services\clock\uc3b0_b1\" />
+    <Folder Include="asf\common\services\spi\" />
+    <Folder Include="asf\common\services\spi\uc3_spi\" />
+    <Folder Include="asf\common\utils\" />
+    <Folder Include="asf\common\utils\interrupt\" />
+    <Folder Include="config" />
+    <Folder Include="uIP\" />
+    <Folder Include="uIP\apps\" />
+    <Folder Include="uIP\apps\dhcpc\" />
+    <Folder Include="uIP\avr\" />
+    <Folder Include="uIP\doc\" />
+    <Folder Include="uIP\doc\html\" />
+    <Folder Include="uIP\drivers\" />
+    <Folder Include="uIP\drivers\interfaces\" />
+    <Folder Include="uIP\drivers\ksz8851" />
+    <Folder Include="uIP\libs\" />
+    <Folder Include="uIP\libs\memb\" />
+    <Folder Include="uIP\libs\net_conf\" />
+    <Folder Include="uIP\uip\" />
+  </ItemGroup>
+  <Import Project="$(AVRSTUDIO_EXE_PATH)\\Vs\\AvrGCC32.targets" />
+</Project>

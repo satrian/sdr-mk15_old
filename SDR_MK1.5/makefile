@@ -183,6 +183,7 @@ SRC = $(TARGET).c                                                 \
 	  OmniRig.c                                                   \
 	  LM97593.c                                                   \
 	  twi.c                                                       \
+	  tx8m.c                                                      \
 	  cdce913_coeff.c                                             \
       asf/common/services/spi/uc3_spi/spi_master.c                \
       asf/common/services/clock/uc3b0_b1/sysclk.c                 \
@@ -221,6 +222,10 @@ SRC = $(TARGET).c                                                 \
       ##enc28j60/websrv_help_functions.c
 
 
+#Comment out the line below if Xilinx bitstream and programming will not be included (disables programming routines etc.)
+TX8MXILINX = PRESENT
+#Xilinx Bitstream
+XSRC = ../../../../../engineering/designs/tx8m/Xilinx/tx8m.bit
 
 # List C++ source files here. (C dependencies are automatically generated.)
 CPPSRC =
@@ -420,7 +425,7 @@ MSG_CREATING_LIBRARY = Creating library:
 
 
 # Define all object files.
-OBJ = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cpp=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o)
+OBJ = $(SRC:%.c=$(OBJDIR)/%.o) $(CPPSRC:%.cpp=$(OBJDIR)/%.o) $(ASRC:%.S=$(OBJDIR)/%.o) $(XSRC:%.bit=$(OBJDIR)/%.o)
 
 # Define all listing files.
 LST = $(SRC:%.c=$(OBJDIR)/%.lst) $(CPPSRC:%.cpp=$(OBJDIR)/%.lst) $(ASRC:%.S=$(OBJDIR)/%.lst)
@@ -571,6 +576,15 @@ $(OBJDIR)/%.o : %.S
 	@echo $(MSG_ASSEMBLING) $<
 	$(CC) -c $(ALL_ASFLAGS) $< -o $@
 
+# Convert Xilinx .bit file to object code
+$(OBJDIR)/%.o : %.bit
+	@echo Converting Xilinx Bitstream $<
+	$(OBJCOPY) -v -w -I binary -O elf32-avr32 -B avr --rename-section .data=.text \
+	--redefine-sym _binary________________engineering_designs_tx8m_Xilinx_tx8m_bit_start=fpga_bitstream_start \
+    --redefine-sym _binary________________engineering_designs_tx8m_Xilinx_tx8m_bit_end=fpga_bitstream_end \
+    --redefine-sym _binary________________engineering_designs_tx8m_Xilinx_tx8m_bit_size=fpga_bitstream_size_sym \
+	$< $@
+	$(NM) $@
 
 # Create preprocessed source for use in sending a bug report.
 %.i : %.c

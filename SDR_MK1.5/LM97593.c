@@ -11,6 +11,10 @@
 #include "clock-arch.h"		// gives definition for millis()
 #include "cycle_counter\cycle_counter.h"
 
+#include "spi.h"
+#include "eth_spi.h"
+#include "tx8m.h"
+
 #include <string.h>
 
 // Build mask for Address pins
@@ -227,13 +231,14 @@ uint32_t data_low, data_high, addr_low, addr_high;
 	gpio_configure_group(PORTA, data_bitmask, GPIO_DIR_INPUT);		// set data bus as input (no need really to do that)
 }
 
+/*
 // For using with panadapter frequency writes
 void WriteRegister_Fast(unsigned char regno, unsigned char regval)
 {
 uint32_t data_low, data_high, addr_low, addr_high;
 
 	//check, if A1 or A3 are low (means that HWBE or BTN1 (optional) is pressed and we shall not drive address bus
-	if ((!gpio_get_pin_value(HWBE)) /*|| (!gpio_get_pin_value(BTN1)) stalls system when R67 is not populated! */)
+	if ((!gpio_get_pin_value(HWBE)))	//|| (!gpio_get_pin_value(BTN1)) stalls system when R67 is not populated! 
 		return;
 
 	gpio_configure_group(PORTA, address_bitmask|data_bitmask, GPIO_DIR_OUTPUT|GPIO_INIT_LOW);	// enable address and bus and clear bits
@@ -261,6 +266,7 @@ uint32_t data_low, data_high, addr_low, addr_high;
 	gpio_configure_group(PORTA, address_bitmask, GPIO_DIR_INPUT);	// free address bus for input (buttons etc.)
 	//gpio_configure_group(PORTA, data_bitmask, GPIO_DIR_INPUT);		// set data bus as input (no need really to do that)
 }
+*/
 
 unsigned char ReadRegister(unsigned char regno)
 {
@@ -320,6 +326,8 @@ uint8_t DiversityMode(uint8_t mode, uint32_t adcfreq)
 		WriteRegister(246, 2);
 		WriteRegister(247, 2);					// use filter set A for channel A and filter set B for channel B
 	}
+	
+	InitIQDataEngine(0,0,1);						// re-sync phase
 
 	return diversity;
 }
@@ -336,32 +344,80 @@ Ranging from -FCK/2 to +FCK/2 (Well, to +FCK(1-2^-31)/2 actually ..)
 Our function takes a absolute frequency as a parameter, ranging therefore from 0Hz to 32MHz
 
 */
-void SetFreq(int16_t channel, int32_t _freq, int16_t write, uint32_t adcfreq)
+
+int TX8Mengaged=-1;
+
+void SetFreq(int16_t channel, int32_t _tunefreq, int16_t write, uint32_t adcfreq)
 {
 int64_t full;
 int64_t clockfreq;
 int64_t freq;
-int32_t freqval;
+int32_t freqval, lofreq;
 char* freqstore;
 int16_t i;
+
+
+#if (TX8M == 1)		// do we have downconverter option ready for us?
+uint32_t tx8mfreq, iffreq;
+uint32_t steppedfreq;
+
+	if (_tunefreq >= ((f_adc/2)))// - 1000000))		// skip 1 meg from the end, since this will likely start having some mirror artifacts already!
+	{
+		if (TX8Mengaged != 1)
+		{
+
+			//connect downconverter
+			expander_set(RELAYS);
+
+			TX8Mengaged=1;	
+		}
+		
+
+		iffreq=7890000;							// just a number somewhere quiet where MK1.5 internal birdies are minimal within +/-1MHz
+		tx8mfreq=_tunefreq-iffreq;				// actual downconverter frequency
+
+		steppedfreq=tx8mfreq/5000;				// we are using 10khz stepping for ADF4351. Since the LO will be doubled for mixer, divide discriminate only by 5kHz here
+		steppedfreq*=5000;
+
+		iffreq+=tx8mfreq-steppedfreq;			// advances our IF frequncy up to 10kHz since downconverter frequency is possibly lower than needed
+		lofreq=iffreq;
+
+		steppedfreq*=2;							// mixer needs double the mixing frequency. This is now in 10kHz stepping
+		WSS_SetFreq(steppedfreq);
+	}
+	else
+	{
+		if (TX8Mengaged != 0)
+		{			
+			//disconnect downconverter
+			expander_clr(RELAYS);
+					
+			TX8Mengaged=0;
+		}
+		
+		lofreq=_tunefreq;
+	}
+#else				// if not, then make lofreq always the same as
+	lofreq=_tunefreq;
+#endif
 
 	clockfreq=adcfreq;
 
 	full=1;
 	full<<=32;		//2^32
 
-	freq=0-_freq;
+	freq=0-lofreq;
 	freqval=(full*freq/clockfreq);
 
 	if (channel == CH_A)
 	{
 		freqstore=reg.freq_a;
-		lastfreq_A=_freq;
+		lastfreq_A=_tunefreq;
 	}
 	else
 	{
 		freqstore=reg.freq_b;
-		lastfreq_B=_freq;
+		lastfreq_B=_tunefreq;
 	}
 
 	freqstore[0]=freqval&0xFF;
@@ -389,13 +445,11 @@ int16_t i;
 
 			lastfreq_B=lastfreq_A;
 		}
-
-		//AssertSI(); do not use, as DMA buffer sync gets broken this way!
 	}
 }
 
-
-//A faster version for using with panadapter scanner
+/*
+//A faster version for using with panadapter scanner only!
 
 void SetFreq_Fast(int16_t channel, int32_t _freq, int16_t write, uint32_t adcfreq)
 {
@@ -442,19 +496,11 @@ int16_t i;
 			for (i=0; i<4; i++)
 				WriteRegister_Fast(FREQ_B+i, reg.freq_b[i]);
 		}
-/*
-		if ((diversity) && (channel == CH_A))		// sync A and B frequencys for diversity math
-		{
-			for (i=0; i<4; i++)
-				WriteRegister_Fast(FREQ_B+i, reg.freq_a[i]);
 
-			lastfreq_B=lastfreq_A;
-		}
-*/
 		//AssertSI(); do not use, as DMA buffer sync gets broken this way!
 	//}
 }
-
+*/
 
 void SetPhase(int16_t channel, uint16_t phaseword)
 {
@@ -487,7 +533,7 @@ int16_t i;
 
 	// SI must be touched. However, we cant just do AssertSI(), as this breaks the sample sync with DMA buffer.
 	// Therefore we are using same process as for the SampleMode() routine.
-	//ResyncSI();
+	InitIQDataEngine(0,0,1);		//reinit with existing parameters - SI will be assrted in the process!
 }
 
 uint8_t SetGain(int16_t channel, int16_t _gain)
@@ -714,6 +760,7 @@ if (freqandphase)
 	memmove(reg.test_reg, 	"\x12\x34", // Test input source. Instead of AIN and BIN pins, the value from this register is used when in test mode.
 							2);
 
+	//reg.debug=0x1|(8<<1);	//debug, NCO A cosine output,
 	reg.debug=0xC0;			// xxxxxxxx		// enable phase dithering
 							// ||||||||
 							// |||||||+- 0=normal, 1=Enables access to the internal probe points
@@ -895,7 +942,7 @@ void ResetRadio(void)
 /*
 This is the legacy piece of code what was used at the very beginning when radio chip did not show any sign of life and
 only way out was trashing the registers randomly hoping to get lucky. What we did! So the code is today totally obsolete,
-but left here as an important landmarl in development! :)
+but left here as an important landmark in development! :)
 */
 
 //Desperate measure for trying to figure out what is wrong with the chip - program all the registers having R_MONTECARLO flag set with ranodm values!
@@ -912,7 +959,7 @@ void xsrand(unsigned x)
 int16_t xrand(void)
 {
    if(!randf)
-      srand(1);
+      xsrand(1);
    return((int)((randx = randx*1103515245L + 12345)>>16) & 077777);
 }
 

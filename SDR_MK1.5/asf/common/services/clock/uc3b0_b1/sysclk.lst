@@ -1,10 +1,10 @@
    1              		.file	"sysclk.c"
   11              	.Ltext0:
   12              		.file 1 "asf/common/services/clock/uc3b0_b1/sysclk.c"
- 74403              		.align	1
- 74404              		.global	sysclk_init
- 74406              	sysclk_init:
- 74407              	.LFB46:
+ 74379              		.align	1
+ 74380              		.global	sysclk_init
+ 74382              	sysclk_init:
+ 74383              	.LFB46:
    1:asf/common/services/clock/uc3b0_b1/sysclk.c **** /**
    2:asf/common/services/clock/uc3b0_b1/sysclk.c ****  * \file
    3:asf/common/services/clock/uc3b0_b1/sysclk.c ****  *
@@ -310,10 +310,10 @@
  303:asf/common/services/clock/uc3b0_b1/sysclk.c **** 
  304:asf/common/services/clock/uc3b0_b1/sysclk.c **** void sysclk_init(void)
  305:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
- 74408              		.loc 1 305 0
- 74409              		# args = 0, frame = 0, pretend = 0
- 74410              		# frame_needed = 0, leaf_function = 1
- 74411              		# uses_anonymous_args = 0
+ 74384              		.loc 1 305 0
+ 74385              		# args = 0, frame = 0, pretend = 0
+ 74386              		# frame_needed = 0, leaf_function = 1
+ 74387              		# uses_anonymous_args = 0
  306:asf/common/services/clock/uc3b0_b1/sysclk.c **** #if (CONFIG_SYSCLK_PBA_DIV < CONFIG_SYSCLK_CPU_DIV)
  307:asf/common/services/clock/uc3b0_b1/sysclk.c **** #error Wrong CONFIG_SYSCLK_PBA_DIV & CONFIG_SYSCLK_CPU_DIV settings
  308:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
@@ -385,22 +385,22 @@
  374:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_initialized = true;
  375:asf/common/services/clock/uc3b0_b1/sysclk.c **** #endif
  376:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
- 74412              		.loc 1 376 0
- 74413 0000 5EFC     		retal	r12
- 74414              	.LFE46:
- 74416              		.section	.text.sysclk_priv_disable_module,"ax",@progbits
- 74417              		.align	1
- 74418              		.global	sysclk_priv_disable_module
- 74420              	sysclk_priv_disable_module:
- 74421              	.LFB43:
+ 74388              		.loc 1 376 0
+ 74389 0000 5EFC     		retal	r12
+ 74390              	.LFE46:
+ 74392              		.section	.text.sysclk_priv_disable_module,"ax",@progbits
+ 74393              		.align	1
+ 74394              		.global	sysclk_priv_disable_module
+ 74396              	sysclk_priv_disable_module:
+ 74397              	.LFB43:
  159:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
- 74422              		.loc 1 159 0
- 74423              		# args = 0, frame = 0, pretend = 0
- 74424              		# frame_needed = 0, leaf_function = 1
- 74425              		# uses_anonymous_args = 0
- 74426              	.LVL0:
- 74427              	.LBB22:
- 74428              	.LBB23:
+ 74398              		.loc 1 159 0
+ 74399              		# args = 0, frame = 0, pretend = 0
+ 74400              		# frame_needed = 0, leaf_function = 1
+ 74401              		# uses_anonymous_args = 0
+ 74402              	.LVL0:
+ 74403              	.LBB22:
+ 74404              	.LBB23:
    1:asf/common/utils/interrupt/interrupt_avr32.h **** /**
    2:asf/common/utils/interrupt/interrupt_avr32.h ****  * \file
    3:asf/common/utils/interrupt/interrupt_avr32.h ****  *
@@ -600,39 +600,39 @@
  197:asf/common/utils/interrupt/interrupt_avr32.h **** 	irqflags_t flags;
  198:asf/common/utils/interrupt/interrupt_avr32.h **** 
  199:asf/common/utils/interrupt/interrupt_avr32.h **** 	flags = sysreg_read(AVR32_SR);
- 74429              		.loc 48 199 0
- 74430 0000 E1BA0000 		mfsr	r10, 0
+ 74405              		.loc 48 199 0
+ 74406 0000 E1BA0000 		mfsr	r10, 0
  200:asf/common/utils/interrupt/interrupt_avr32.h **** 	cpu_irq_disable();
- 74431              		.loc 48 200 0
- 74432 0004 D303     		ssrf    16
- 74433              	.LBE23:
- 74434              	.LBE22:
+ 74407              		.loc 48 200 0
+ 74408 0004 D303     		ssrf    16
+ 74409              	.LBE23:
+ 74410              	.LBE22:
  169:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	while (!(AVR32_PM.poscsr & (1U << AVR32_PM_POSCSR_MSKRDY))) {
- 74435              		.loc 1 169 0
- 74436 0006 FE780C00 		mov	r8, -62464
- 74437              	.L4:
- 74438 000a 7159     		ld.w	r9, r8[84]
- 74439 000c E2190040 		andl	r9, 64, COH
- 74440 0010 CFD0     		breq .L4
+ 74411              		.loc 1 169 0
+ 74412 0006 FE780C00 		mov	r8, -62464
+ 74413              	.L4:
+ 74414 000a 7159     		ld.w	r9, r8[84]
+ 74415 000c E2190040 		andl	r9, 64, COH
+ 74416 0010 CFD0     		breq .L4
  174:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask = *(&AVR32_PM.cpumask + bus_id);
- 74441              		.loc 1 174 0
- 74442 0012 A36C     		lsl     r12, 2
- 74443              	.LVL1:
- 74444 0014 E02CF3F8 		sub     r12, 62456
- 74445 0018 7809     		ld.w	r9, r12[0]
- 74446              	.LVL2:
+ 74417              		.loc 1 174 0
+ 74418 0012 A36C     		lsl     r12, 2
+ 74419              	.LVL1:
+ 74420 0014 E02CF3F8 		sub     r12, 62456
+ 74421 0018 7809     		ld.w	r9, r12[0]
+ 74422              	.LVL2:
  175:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask &= ~(1U << module_index);
- 74447              		.loc 1 175 0
- 74448 001a 3018     		mov	r8, 1
- 74449 001c F00B0948 		lsl     r8, r8, r11
- 74450 0020 5CD8     		com	r8
- 74451 0022 1268     		and	r8, r9
- 74452              	.LVL3:
+ 74423              		.loc 1 175 0
+ 74424 001a 3018     		mov	r8, 1
+ 74425 001c F00B0948 		lsl     r8, r8, r11
+ 74426 0020 5CD8     		com	r8
+ 74427 0022 1268     		and	r8, r9
+ 74428              	.LVL3:
  176:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	*(&AVR32_PM.cpumask + bus_id) = mask;
- 74453              		.loc 1 176 0
- 74454 0024 9908     		st.w	r12[0], r8
- 74455              	.LBB24:
- 74456              	.LBB25:
+ 74429              		.loc 1 176 0
+ 74430 0024 9908     		st.w	r12[0], r8
+ 74431              	.LBB24:
+ 74432              	.LBB25:
  201:asf/common/utils/interrupt/interrupt_avr32.h **** 
  202:asf/common/utils/interrupt/interrupt_avr32.h **** 	return flags;
  203:asf/common/utils/interrupt/interrupt_avr32.h **** }
@@ -645,7 +645,7 @@
  210:asf/common/utils/interrupt/interrupt_avr32.h **** static inline void cpu_irq_restore(irqflags_t flags)
  211:asf/common/utils/interrupt/interrupt_avr32.h **** {
  212:asf/common/utils/interrupt/interrupt_avr32.h **** 	barrier();
- 74457              		.loc 48 212 0
+ 74433              		.loc 48 212 0
  213:asf/common/utils/interrupt/interrupt_avr32.h **** #if defined(__ICCAVR32__)
  214:asf/common/utils/interrupt/interrupt_avr32.h ****    // Barrier " __asm__ __volatile__ ("")"
  215:asf/common/utils/interrupt/interrupt_avr32.h ****    // Don't work with sysreg_write(AVR32_SR, flags)
@@ -654,58 +654,58 @@
  218:asf/common/utils/interrupt/interrupt_avr32.h ****    }
  219:asf/common/utils/interrupt/interrupt_avr32.h **** #else
  220:asf/common/utils/interrupt/interrupt_avr32.h **** 	sysreg_write(AVR32_SR, flags);
- 74458              		.loc 48 220 0
- 74459 0026 E3BA0000 		mtsr	0, r10
+ 74434              		.loc 48 220 0
+ 74435 0026 E3BA0000 		mtsr	0, r10
  221:asf/common/utils/interrupt/interrupt_avr32.h **** #endif
  222:asf/common/utils/interrupt/interrupt_avr32.h **** 	barrier();
- 74460              		.loc 48 222 0
- 74461              	.LBE25:
- 74462              	.LBE24:
+ 74436              		.loc 48 222 0
+ 74437              	.LBE25:
+ 74438              	.LBE24:
  179:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
- 74463              		.loc 1 179 0
- 74464 002a 5EFC     		retal	r12
- 74465              	.LFE43:
- 74467              		.section	.text.sysclk_disable_pbb_module,"ax",@progbits
- 74468              		.align	1
- 74469              		.global	sysclk_disable_pbb_module
- 74471              	sysclk_disable_pbb_module:
- 74472              	.LFB45:
+ 74439              		.loc 1 179 0
+ 74440 002a 5EFC     		retal	r12
+ 74441              	.LFE43:
+ 74443              		.section	.text.sysclk_disable_pbb_module,"ax",@progbits
+ 74444              		.align	1
+ 74445              		.global	sysclk_disable_pbb_module
+ 74447              	sysclk_disable_pbb_module:
+ 74448              	.LFB45:
  209:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
- 74473              		.loc 1 209 0
- 74474              		# args = 0, frame = 0, pretend = 0
- 74475              		# frame_needed = 0, leaf_function = 0
- 74476              		# uses_anonymous_args = 0
- 74477              	.LVL4:
- 74478 0000 EBCD4080 		stm	--sp, r7, lr
- 74479              	.LCFI0:
+ 74449              		.loc 1 209 0
+ 74450              		# args = 0, frame = 0, pretend = 0
+ 74451              		# frame_needed = 0, leaf_function = 0
+ 74452              		# uses_anonymous_args = 0
+ 74453              	.LVL4:
+ 74454 0000 EBCD4080 		stm	--sp, r7, lr
+ 74455              	.LCFI0:
  213:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_priv_disable_module(AVR32_PM_CLK_GRP_PBB, index);
- 74480              		.loc 1 213 0
- 74481 0004 189B     		mov	r11, r12
- 74482 0006 303C     		mov	r12, 3
- 74483              	.LVL5:
- 74484 0008 F01F000A 		call	sysclk_priv_disable_module
- 74485              	.LBB26:
- 74486              	.LBB27:
+ 74456              		.loc 1 213 0
+ 74457 0004 189B     		mov	r11, r12
+ 74458 0006 303C     		mov	r12, 3
+ 74459              	.LVL5:
+ 74460 0008 F01F000A 		call	sysclk_priv_disable_module
+ 74461              	.LBB26:
+ 74462              	.LBB27:
  199:asf/common/utils/interrupt/interrupt_avr32.h **** 	flags = sysreg_read(AVR32_SR);
- 74487              		.loc 48 199 0
- 74488 000c E1B70000 		mfsr	r7, 0
+ 74463              		.loc 48 199 0
+ 74464 000c E1B70000 		mfsr	r7, 0
  200:asf/common/utils/interrupt/interrupt_avr32.h **** 	cpu_irq_disable();
- 74489              		.loc 48 200 0
- 74490 0010 D303     		ssrf    16
- 74491              	.LBE27:
- 74492              	.LBE26:
+ 74465              		.loc 48 200 0
+ 74466 0010 D303     		ssrf    16
+ 74467              	.LBE27:
+ 74468              	.LBE26:
  218:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_pbb_refcount--;
- 74493              		.loc 1 218 0
- 74494 0012 4899     		lda.w	r9, .LANCHOR0
- 74495 0014 1388     		ld.ub	r8, r9[0]
- 74496 0016 2018     		sub     r8, 1
- 74497 0018 5C58     		castu.b	r8
- 74498 001a B288     		st.b	r9[0], r8
+ 74469              		.loc 1 218 0
+ 74470 0012 4899     		lda.w	r9, .LANCHOR0
+ 74471 0014 1388     		ld.ub	r8, r9[0]
+ 74472 0016 2018     		sub     r8, 1
+ 74473 0018 5C58     		castu.b	r8
+ 74474 001a B288     		st.b	r9[0], r8
  219:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	if (!sysclk_pbb_refcount)
- 74499              		.loc 1 219 0
- 74500 001c C051     		brne .L8
- 74501              	.LBB28:
- 74502              	.LBB29:
+ 74475              		.loc 1 219 0
+ 74476 001c C051     		brne .L8
+ 74477              	.LBB28:
+ 74478              	.LBB29:
    1:asf/common/services/clock/uc3b0_b1/sysclk.h **** /**
    2:asf/common/services/clock/uc3b0_b1/sysclk.h ****  * \file
    3:asf/common/services/clock/uc3b0_b1/sysclk.h ****  *
@@ -1158,175 +1158,175 @@
  450:asf/common/services/clock/uc3b0_b1/sysclk.h **** static inline void sysclk_disable_hsb_module(unsigned int index)
  451:asf/common/services/clock/uc3b0_b1/sysclk.h **** {
  452:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	sysclk_priv_disable_module(AVR32_PM_CLK_GRP_HSB, index);
- 74503              		.loc 52 452 0
- 74504 001e 302B     		mov	r11, 2
- 74505 0020 301C     		mov	r12, 1
- 74506 0022 F01F0004 		call	sysclk_priv_disable_module
- 74507              	.L8:
- 74508              	.LBE29:
- 74509              	.LBE28:
- 74510              	.LBB30:
- 74511              	.LBB31:
+ 74479              		.loc 52 452 0
+ 74480 001e 302B     		mov	r11, 2
+ 74481 0020 301C     		mov	r12, 1
+ 74482 0022 F01F0004 		call	sysclk_priv_disable_module
+ 74483              	.L8:
+ 74484              	.LBE29:
+ 74485              	.LBE28:
+ 74486              	.LBB30:
+ 74487              	.LBB31:
  212:asf/common/utils/interrupt/interrupt_avr32.h **** 	barrier();
- 74512              		.loc 48 212 0
+ 74488              		.loc 48 212 0
  220:asf/common/utils/interrupt/interrupt_avr32.h **** 	sysreg_write(AVR32_SR, flags);
- 74513              		.loc 48 220 0
- 74514 0026 E3B70000 		mtsr	0, r7
- 74515              		.loc 48 222 0
- 74516              	.LBE31:
- 74517              	.LBE30:
+ 74489              		.loc 48 220 0
+ 74490 0026 E3B70000 		mtsr	0, r7
+ 74491              		.loc 48 222 0
+ 74492              	.LBE31:
+ 74493              	.LBE30:
  223:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
- 74518              		.loc 1 223 0
- 74519 002a E3CD8080 		ldm	sp++, r7, pc
- 74520 002e 00000000 		.cpool
- 74520      00000000 
- 74520      0000
- 74521              		.align	2
- 74522              	.L10:
- 74523              	.LFE45:
- 74525              		.section	.text.sysclk_priv_enable_module,"ax",@progbits
- 74526              		.align	1
- 74527              		.global	sysclk_priv_enable_module
- 74529              	sysclk_priv_enable_module:
- 74530              	.LFB42:
+ 74494              		.loc 1 223 0
+ 74495 002a E3CD8080 		ldm	sp++, r7, pc
+ 74496 002e 00000000 		.cpool
+ 74496      00000000 
+ 74496      0000
+ 74497              		.align	2
+ 74498              	.L10:
+ 74499              	.LFE45:
+ 74501              		.section	.text.sysclk_priv_enable_module,"ax",@progbits
+ 74502              		.align	1
+ 74503              		.global	sysclk_priv_enable_module
+ 74505              	sysclk_priv_enable_module:
+ 74506              	.LFB42:
  129:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
- 74531              		.loc 1 129 0
- 74532              		# args = 0, frame = 0, pretend = 0
- 74533              		# frame_needed = 0, leaf_function = 1
- 74534              		# uses_anonymous_args = 0
- 74535              	.LVL6:
- 74536              	.LBB32:
- 74537              	.LBB33:
+ 74507              		.loc 1 129 0
+ 74508              		# args = 0, frame = 0, pretend = 0
+ 74509              		# frame_needed = 0, leaf_function = 1
+ 74510              		# uses_anonymous_args = 0
+ 74511              	.LVL6:
+ 74512              	.LBB32:
+ 74513              	.LBB33:
  199:asf/common/utils/interrupt/interrupt_avr32.h **** 	flags = sysreg_read(AVR32_SR);
- 74538              		.loc 48 199 0
- 74539 0000 E1BA0000 		mfsr	r10, 0
+ 74514              		.loc 48 199 0
+ 74515 0000 E1BA0000 		mfsr	r10, 0
  200:asf/common/utils/interrupt/interrupt_avr32.h **** 	cpu_irq_disable();
- 74540              		.loc 48 200 0
- 74541 0004 D303     		ssrf    16
- 74542              	.LBE33:
- 74543              	.LBE32:
+ 74516              		.loc 48 200 0
+ 74517 0004 D303     		ssrf    16
+ 74518              	.LBE33:
+ 74519              	.LBE32:
  139:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	while (!(AVR32_PM.poscsr & (1U << AVR32_PM_POSCSR_MSKRDY))) {
- 74544              		.loc 1 139 0
- 74545 0006 FE780C00 		mov	r8, -62464
- 74546              	.L12:
- 74547 000a 7159     		ld.w	r9, r8[84]
- 74548 000c E2190040 		andl	r9, 64, COH
- 74549 0010 CFD0     		breq .L12
+ 74520              		.loc 1 139 0
+ 74521 0006 FE780C00 		mov	r8, -62464
+ 74522              	.L12:
+ 74523 000a 7159     		ld.w	r9, r8[84]
+ 74524 000c E2190040 		andl	r9, 64, COH
+ 74525 0010 CFD0     		breq .L12
  144:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask = *(&AVR32_PM.cpumask + bus_id);
- 74550              		.loc 1 144 0
- 74551 0012 A36C     		lsl     r12, 2
- 74552              	.LVL7:
- 74553 0014 E02CF3F8 		sub     r12, 62456
- 74554 0018 7808     		ld.w	r8, r12[0]
- 74555              	.LVL8:
+ 74526              		.loc 1 144 0
+ 74527 0012 A36C     		lsl     r12, 2
+ 74528              	.LVL7:
+ 74529 0014 E02CF3F8 		sub     r12, 62456
+ 74530 0018 7808     		ld.w	r8, r12[0]
+ 74531              	.LVL8:
  145:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	mask |= 1U << module_index;
- 74556              		.loc 1 145 0
- 74557 001a 3019     		mov	r9, 1
- 74558 001c F20B094B 		lsl     r11, r9, r11
- 74559              	.LVL9:
- 74560 0020 104B     		or	r11, r8
- 74561              	.LVL10:
+ 74532              		.loc 1 145 0
+ 74533 001a 3019     		mov	r9, 1
+ 74534 001c F20B094B 		lsl     r11, r9, r11
+ 74535              	.LVL9:
+ 74536 0020 104B     		or	r11, r8
+ 74537              	.LVL10:
  146:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	*(&AVR32_PM.cpumask + bus_id) = mask;
- 74562              		.loc 1 146 0
- 74563 0022 990B     		st.w	r12[0], r11
- 74564              	.LBB34:
- 74565              	.LBB35:
+ 74538              		.loc 1 146 0
+ 74539 0022 990B     		st.w	r12[0], r11
+ 74540              	.LBB34:
+ 74541              	.LBB35:
  212:asf/common/utils/interrupt/interrupt_avr32.h **** 	barrier();
- 74566              		.loc 48 212 0
+ 74542              		.loc 48 212 0
  220:asf/common/utils/interrupt/interrupt_avr32.h **** 	sysreg_write(AVR32_SR, flags);
- 74567              		.loc 48 220 0
- 74568 0024 E3BA0000 		mtsr	0, r10
- 74569              		.loc 48 222 0
- 74570              	.LBE35:
- 74571              	.LBE34:
+ 74543              		.loc 48 220 0
+ 74544 0024 E3BA0000 		mtsr	0, r10
+ 74545              		.loc 48 222 0
+ 74546              	.LBE35:
+ 74547              	.LBE34:
  149:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
- 74572              		.loc 1 149 0
- 74573 0028 5EFC     		retal	r12
- 74574              	.LFE42:
- 74576              		.section	.text.sysclk_enable_pbb_module,"ax",@progbits
- 74577              		.align	1
- 74578              		.global	sysclk_enable_pbb_module
- 74580              	sysclk_enable_pbb_module:
- 74581              	.LFB44:
+ 74548              		.loc 1 149 0
+ 74549 0028 5EFC     		retal	r12
+ 74550              	.LFE42:
+ 74552              		.section	.text.sysclk_enable_pbb_module,"ax",@progbits
+ 74553              		.align	1
+ 74554              		.global	sysclk_enable_pbb_module
+ 74556              	sysclk_enable_pbb_module:
+ 74557              	.LFB44:
  188:asf/common/services/clock/uc3b0_b1/sysclk.c **** {
- 74582              		.loc 1 188 0
- 74583              		# args = 0, frame = 0, pretend = 0
- 74584              		# frame_needed = 0, leaf_function = 0
- 74585              		# uses_anonymous_args = 0
- 74586              	.LVL11:
- 74587 0000 EBCD40C0 		stm	--sp, r6, r7, lr
- 74588              	.LCFI1:
- 74589 0004 1897     		mov	r7, r12
- 74590              	.LBB36:
- 74591              	.LBB37:
+ 74558              		.loc 1 188 0
+ 74559              		# args = 0, frame = 0, pretend = 0
+ 74560              		# frame_needed = 0, leaf_function = 0
+ 74561              		# uses_anonymous_args = 0
+ 74562              	.LVL11:
+ 74563 0000 EBCD40C0 		stm	--sp, r6, r7, lr
+ 74564              	.LCFI1:
+ 74565 0004 1897     		mov	r7, r12
+ 74566              	.LBB36:
+ 74567              	.LBB37:
  199:asf/common/utils/interrupt/interrupt_avr32.h **** 	flags = sysreg_read(AVR32_SR);
- 74592              		.loc 48 199 0
- 74593 0006 E1B60000 		mfsr	r6, 0
+ 74568              		.loc 48 199 0
+ 74569 0006 E1B60000 		mfsr	r6, 0
  200:asf/common/utils/interrupt/interrupt_avr32.h **** 	cpu_irq_disable();
- 74594              		.loc 48 200 0
- 74595 000a D303     		ssrf    16
- 74596              	.LBE37:
- 74597              	.LBE36:
+ 74570              		.loc 48 200 0
+ 74571 000a D303     		ssrf    16
+ 74572              	.LBE37:
+ 74573              	.LBE36:
  194:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	if (!sysclk_pbb_refcount)
- 74598              		.loc 1 194 0
- 74599 000c 48B8     		lda.w	r8, .LANCHOR0
- 74600 000e 1189     		ld.ub	r9, r8[0]
- 74601 0010 3008     		mov	r8, 0
- 74602 0012 F0091800 		cp.b	r9, r8
- 74603 0016 C051     		brne .L16
- 74604              	.LVL12:
- 74605              	.LBB38:
- 74606              	.LBB39:
+ 74574              		.loc 1 194 0
+ 74575 000c 48B8     		lda.w	r8, .LANCHOR0
+ 74576 000e 1189     		ld.ub	r9, r8[0]
+ 74577 0010 3008     		mov	r8, 0
+ 74578 0012 F0091800 		cp.b	r9, r8
+ 74579 0016 C051     		brne .L16
+ 74580              	.LVL12:
+ 74581              	.LBB38:
+ 74582              	.LBB39:
  443:asf/common/services/clock/uc3b0_b1/sysclk.h **** 	sysclk_priv_enable_module(AVR32_PM_CLK_GRP_HSB, index);
- 74607              		.loc 52 443 0
- 74608 0018 302B     		mov	r11, 2
- 74609 001a 301C     		mov	r12, 1
- 74610 001c F01F0008 		call	sysclk_priv_enable_module
- 74611              	.LVL13:
- 74612              	.L16:
- 74613              	.LBE39:
- 74614              	.LBE38:
+ 74583              		.loc 52 443 0
+ 74584 0018 302B     		mov	r11, 2
+ 74585 001a 301C     		mov	r12, 1
+ 74586 001c F01F0008 		call	sysclk_priv_enable_module
+ 74587              	.LVL13:
+ 74588              	.L16:
+ 74589              	.LBE39:
+ 74590              	.LBE38:
  196:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_pbb_refcount++;
- 74615              		.loc 1 196 0
- 74616 0020 4868     		lda.w	r8, .LANCHOR0
- 74617 0022 1189     		ld.ub	r9, r8[0]
- 74618 0024 2FF9     		sub     r9, -1
- 74619 0026 B089     		st.b	r8[0], r9
- 74620              	.LBB40:
- 74621              	.LBB41:
+ 74591              		.loc 1 196 0
+ 74592 0020 4868     		lda.w	r8, .LANCHOR0
+ 74593 0022 1189     		ld.ub	r9, r8[0]
+ 74594 0024 2FF9     		sub     r9, -1
+ 74595 0026 B089     		st.b	r8[0], r9
+ 74596              	.LBB40:
+ 74597              	.LBB41:
  212:asf/common/utils/interrupt/interrupt_avr32.h **** 	barrier();
- 74622              		.loc 48 212 0
+ 74598              		.loc 48 212 0
  220:asf/common/utils/interrupt/interrupt_avr32.h **** 	sysreg_write(AVR32_SR, flags);
- 74623              		.loc 48 220 0
- 74624 0028 E3B60000 		mtsr	0, r6
- 74625              		.loc 48 222 0
- 74626              	.LBE41:
- 74627              	.LBE40:
+ 74599              		.loc 48 220 0
+ 74600 0028 E3B60000 		mtsr	0, r6
+ 74601              		.loc 48 222 0
+ 74602              	.LBE41:
+ 74603              	.LBE40:
  201:asf/common/services/clock/uc3b0_b1/sysclk.c **** 	sysclk_priv_enable_module(AVR32_PM_CLK_GRP_PBB, index);
- 74628              		.loc 1 201 0
- 74629 002c 0E9B     		mov	r11, r7
- 74630 002e 303C     		mov	r12, 3
- 74631 0030 F01F0003 		call	sysclk_priv_enable_module
+ 74604              		.loc 1 201 0
+ 74605 002c 0E9B     		mov	r11, r7
+ 74606 002e 303C     		mov	r12, 3
+ 74607 0030 F01F0003 		call	sysclk_priv_enable_module
  202:asf/common/services/clock/uc3b0_b1/sysclk.c **** }
- 74632              		.loc 1 202 0
- 74633 0034 E3CD80C0 		ldm	sp++, r6, r7, pc
- 74634 0038 00000000 		.cpool
- 74634      00000000 
- 74635              		.align	2
- 74636              	.L18:
- 74637              	.LFE44:
- 74639              		.section	.bss
- 74640              		.set	.LANCHOR0,. + 0
- 74643              	sysclk_pbb_refcount:
- 74644 0000 00       		.zero	1
- 74724              	.Letext0:
+ 74608              		.loc 1 202 0
+ 74609 0034 E3CD80C0 		ldm	sp++, r6, r7, pc
+ 74610 0038 00000000 		.cpool
+ 74610      00000000 
+ 74611              		.align	2
+ 74612              	.L18:
+ 74613              	.LFE44:
+ 74615              		.section	.bss
+ 74616              		.set	.LANCHOR0,. + 0
+ 74619              	sysclk_pbb_refcount:
+ 74620 0000 00       		.zero	1
+ 74700              	.Letext0:
 DEFINED SYMBOLS
                             *ABS*:00000000 sysclk.c
-C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74406  .text.sysclk_init:00000000 sysclk_init
-C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74420  .text.sysclk_priv_disable_module:00000000 sysclk_priv_disable_module
-C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74471  .text.sysclk_disable_pbb_module:00000000 sysclk_disable_pbb_module
-C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74529  .text.sysclk_priv_enable_module:00000000 sysclk_priv_enable_module
-C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74580  .text.sysclk_enable_pbb_module:00000000 sysclk_enable_pbb_module
-C:\Users\Laid\AppData\Local\Temp\ccy8G8c5.s:74643  .bss:00000000 sysclk_pbb_refcount
+C:\Users\Tiia\AppData\Local\Temp\ccN2LGYf.s:74382  .text.sysclk_init:00000000 sysclk_init
+C:\Users\Tiia\AppData\Local\Temp\ccN2LGYf.s:74396  .text.sysclk_priv_disable_module:00000000 sysclk_priv_disable_module
+C:\Users\Tiia\AppData\Local\Temp\ccN2LGYf.s:74447  .text.sysclk_disable_pbb_module:00000000 sysclk_disable_pbb_module
+C:\Users\Tiia\AppData\Local\Temp\ccN2LGYf.s:74505  .text.sysclk_priv_enable_module:00000000 sysclk_priv_enable_module
+C:\Users\Tiia\AppData\Local\Temp\ccN2LGYf.s:74556  .text.sysclk_enable_pbb_module:00000000 sysclk_enable_pbb_module
+C:\Users\Tiia\AppData\Local\Temp\ccN2LGYf.s:74619  .bss:00000000 sysclk_pbb_refcount
 
 NO UNDEFINED SYMBOLS
